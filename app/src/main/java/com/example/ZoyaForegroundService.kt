@@ -25,6 +25,7 @@ import com.example.live.MayaWakeWordManager
 import com.example.live.ZoyaState
 import com.example.tools.ToolExecutionEngine
 import com.example.ui.EdgeLightOverlayManager
+import com.example.ui.FloatingMayaOverlayManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -72,7 +73,6 @@ class ZoyaForegroundService : Service() {
         const val ACTION_WAKE = "com.example.ACTION_WAKE"
 
         var currentState: ZoyaState = ZoyaState.IDLE
-            private set
         var onStateChange: ((ZoyaState) -> Unit)? = null
 
         var isSleeping: Boolean = false
@@ -154,10 +154,16 @@ class ZoyaForegroundService : Service() {
                 }
             }
 
+            // Show floating Maya Assistant Bubble on screen edge
+            if (FloatingMayaOverlayManager.isOverlayPermitted(applicationContext)) {
+                FloatingMayaOverlayManager.show(applicationContext)
+            }
+
             scope.launch {
                 liveSessionManager.zoyaState.collect { state ->
                     currentState = state
                     onStateChange?.invoke(state)
+                    FloatingMayaOverlayManager.updateState(state)
 
                     if (!isSleeping) {
                         // Update persistent notification with current state
@@ -503,7 +509,9 @@ class ZoyaForegroundService : Service() {
             // Restart mic loop and live session
             initAudioTrack()
             startMicrophoneLoop()
+            wakeWordManager?.resumeListening()
             liveSessionManager.startSession()
+            FloatingMayaOverlayManager.updateState(ZoyaState.LISTENING)
             updateNotification("Maya is listening for 'Ok Maya'...")
             Log.i("MayaService", "Maya has AWOKEN from sleep mode!")
         } catch (e: Exception) {
@@ -519,6 +527,7 @@ class ZoyaForegroundService : Service() {
             releaseWakeLock()
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 EdgeLightOverlayManager.hide()
+                FloatingMayaOverlayManager.hide()
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -584,6 +593,7 @@ class ZoyaForegroundService : Service() {
         try { audioTrack?.release() } catch (_: Exception) {}
         try { liveSessionManager.stopSession() } catch (_: Exception) {}
         try { EdgeLightOverlayManager.hide() } catch (_: Exception) {}
+        try { FloatingMayaOverlayManager.hide() } catch (_: Exception) {}
         job.cancel()
     }
 

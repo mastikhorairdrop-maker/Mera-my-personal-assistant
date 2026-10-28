@@ -97,20 +97,25 @@ class MayaWakeWordManager(
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-                // Super fast silence detection: trigger in 400ms instead of 3000ms delay!
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 400L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 400L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 150L)
+                // Generous silence length so Maya NEVER cuts off user speech prematurely
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 3000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1500L)
                 putExtra("android.speech.extra.DICTATION_MODE", true)
             }
 
-            // Suppress the annoying Android system "tring-tring" beep on startListening
+            // Suppress system earcon beep on startListening
             silenceBeepAndStartListening(intent)
             isListening = true
             Log.d("MayaWakeWord", "Wake word listener active: listening for 'Ok Maya' and direct commands...")
         } catch (e: Exception) {
             Log.e("MayaWakeWord", "Failed to start speech recognizer: ${e.message}")
-            scheduleRestart(2000)
+            try {
+                speechRecognizer?.cancel()
+                speechRecognizer?.destroy()
+            } catch (_: Exception) {}
+            speechRecognizer = null
+            scheduleRestart(3000)
         }
     }
 
@@ -119,6 +124,7 @@ class MayaWakeWordManager(
         try {
             am?.adjustStreamVolume(android.media.AudioManager.STREAM_SYSTEM, android.media.AudioManager.ADJUST_MUTE, 0)
             am?.adjustStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION, android.media.AudioManager.ADJUST_MUTE, 0)
+            am?.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_MUTE, 0)
         } catch (_: Exception) {}
 
         try {
@@ -131,8 +137,9 @@ class MayaWakeWordManager(
             try {
                 am?.adjustStreamVolume(android.media.AudioManager.STREAM_SYSTEM, android.media.AudioManager.ADJUST_UNMUTE, 0)
                 am?.adjustStreamVolume(android.media.AudioManager.STREAM_NOTIFICATION, android.media.AudioManager.ADJUST_UNMUTE, 0)
+                am?.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_UNMUTE, 0)
             } catch (_: Exception) {}
-        }, 300L)
+        }, 400L)
     }
 
     private fun createListener(): RecognitionListener {
@@ -148,13 +155,26 @@ class MayaWakeWordManager(
 
             override fun onError(error: Int) {
                 isListening = false
+                Log.w("MayaWakeWord", "SpeechRecognizer error: $error")
                 if (!isPaused) {
-                    val delay = if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                        800L
+                    if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+                        error == SpeechRecognizer.ERROR_CLIENT ||
+                        error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
+                    ) {
+                        try {
+                            speechRecognizer?.cancel()
+                            speechRecognizer?.destroy()
+                        } catch (_: Exception) {}
+                        speechRecognizer = null
+                        scheduleRestart(2500L)
                     } else {
-                        1500L
+                        val delay = if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                            1500L
+                        } else {
+                            2500L
+                        }
+                        scheduleRestart(delay)
                     }
-                    scheduleRestart(delay)
                 }
             }
 
@@ -163,7 +183,7 @@ class MayaWakeWordManager(
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 checkMatches(matches, isPartial = false)
                 if (!isPaused) {
-                    scheduleRestart(600)
+                    scheduleRestart(1000L)
                 }
             }
 
@@ -184,6 +204,8 @@ class MayaWakeWordManager(
         "phone lock", "screen lock", "lock screen", "lock phone", "lock karo", "lock kar do",
         "screen band", "phone band", "screen off", "display off",
         "स्क्रीन लॉक", "फोन लॉक", "स्क्रीन बंद", "फोन बंद", "लॉक करो", "लॉक कर दो", "स्क्रीन ऑफ",
+        "whatsapp", "व्हाट्सएप", "व्हाट्सऐप", "send karo", "bhejo", "भेजो", "सेंड करो", "मैसेज",
+        "gemini", "जेमिनी", "photo banao", "फोटो बनाओ", "तस्वीर बनाओ",
         "torch", "flashlight", "टॉर्च", "फ्लैशलाइट",
         "volume", "awaaz", "आवाज", "वॉल्यूम",
         "camera", "कैमरा", "selfie", "सेल्फी",
@@ -203,18 +225,30 @@ class MayaWakeWordManager(
             val lower = phrase.lowercase().trim()
             if (lower.isBlank()) continue
 
+            // If it's a partial result, DO NOT trigger complex multi-word commands (WhatsApp, Gemini, YouTube songs, etc.)
+            // so we don't cut off user speech mid-sentence!
+            if (isPartial) {
+                val isMultiWordComplex = lower.contains("whatsapp") || lower.contains("व्हाट्सएप") ||
+                        lower.contains("gemini") || lower.contains("जेमिनी") ||
+                        lower.contains("send") || lower.contains("bhejo") || lower.contains("भेजो") ||
+                        lower.contains("gana") || lower.contains("song") || lower.contains("गाना") ||
+                        lower.contains("photo") || lower.contains("फोटो") || lower.contains("call")
+                if (isMultiWordComplex) {
+                    continue
+                }
+            }
+
             // Check if contains wake word
             val hasWakeWord = wakeWords.any { lower.contains(it) }
             // Check if contains direct command
             val hasDirectCommand = directCommandKeywords.any { lower.contains(it) }
 
             if (hasWakeWord || hasDirectCommand) {
-                // Deduplicate if identical phrase was handled in the last 1200ms
-                if (lower == lastHandledPhrase && (now - lastTriggerTime < 1200L)) {
+                // Deduplicate if identical phrase was handled in the last 1500ms
+                if (lower == lastHandledPhrase && (now - lastTriggerTime < 1500L)) {
                     return
                 }
-                // If a partial result already triggered a command and now results has the same command, ignore
-                if (!isPartial && lastHandledPhrase.isNotBlank() && lower.contains(lastHandledPhrase) && (now - lastTriggerTime < 1500L)) {
+                if (!isPartial && lastHandledPhrase.isNotBlank() && lower.contains(lastHandledPhrase) && (now - lastTriggerTime < 1800L)) {
                     return
                 }
 

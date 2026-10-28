@@ -6,7 +6,11 @@
 .DS_Store
 build/
 */build/
+**/build/
 app/build/
+.build-outputs/
+.build-outputs
+.aistudio/
 *.apk
 *.aab
 public/
@@ -18,3 +22,4 @@ public/
 local.properties
 .env
 debug.keystore
+

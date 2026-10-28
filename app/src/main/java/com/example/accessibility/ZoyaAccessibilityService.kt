@@ -18,17 +18,14 @@ class ZoyaAccessibilityService : AccessibilityService() {
 
         // WhatsApp flags
         var shouldAutoClickWhatsApp = false
-            set(value) {
-                field = value
-                if (value) {
-                    mainHandler.postDelayed({ field = false }, 12000)
-                    scheduleWhatsAppSendRetry(0)
-                }
-            }
+        var targetWhatsAppMessage: String? = null
 
         var shouldSearchAndSendWhatsApp = false
         var targetWhatsAppContact: String? = null
-        var targetWhatsAppMessage: String? = null
+
+        // Gemini flags
+        var shouldPasteGeminiPrompt = false
+        var targetGeminiPrompt: String? = null
 
         // Instagram flags
         var shouldAutoClickInstagram = false
@@ -124,13 +121,51 @@ class ZoyaAccessibilityService : AccessibilityService() {
             return false
         }
 
+        fun startWhatsAppSendWatcher(message: String?) {
+            shouldAutoClickWhatsApp = true
+            targetWhatsAppMessage = message
+            scheduleWhatsAppSendRetry(0)
+            mainHandler.postDelayed({ shouldAutoClickWhatsApp = false }, 15000)
+        }
+
+        fun startWhatsAppSearchAndSend(contact: String, message: String) {
+            shouldSearchAndSendWhatsApp = true
+            targetWhatsAppContact = contact
+            targetWhatsAppMessage = message
+            scheduleWhatsAppSearchRetry(0)
+            mainHandler.postDelayed({ shouldSearchAndSendWhatsApp = false }, 18000)
+        }
+
+        fun startGeminiPromptPaster(prompt: String) {
+            shouldPasteGeminiPrompt = true
+            targetGeminiPrompt = prompt
+            scheduleGeminiPromptRetry(0)
+            mainHandler.postDelayed({ shouldPasteGeminiPrompt = false }, 15000)
+        }
+
         private fun scheduleWhatsAppSendRetry(attempt: Int) {
-            if (!shouldAutoClickWhatsApp || attempt > 15) return
+            if (!shouldAutoClickWhatsApp || attempt > 25) return
             mainHandler.postDelayed({
                 val inst = instance
                 if (inst != null && shouldAutoClickWhatsApp) {
                     val root = inst.rootInActiveWindow
                     if (root != null) {
+                        // Check if text needs to be inserted into compose entry
+                        val msg = targetWhatsAppMessage
+                        if (!msg.isNullOrBlank()) {
+                            val entryBoxes = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry")
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/entry") }
+                            for (box in entryBoxes) {
+                                val currentText = box.text?.toString() ?: ""
+                                if (currentText.isBlank()) {
+                                    val args = Bundle().apply {
+                                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, msg)
+                                    }
+                                    box.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                                }
+                            }
+                        }
+
                         val clicked = inst.searchAndClickSendButton(root)
                         if (clicked) {
                             Log.d("MayaAccessibility", "WhatsApp send button clicked on retry attempt $attempt")
@@ -140,7 +175,151 @@ class ZoyaAccessibilityService : AccessibilityService() {
                     }
                     scheduleWhatsAppSendRetry(attempt + 1)
                 }
+            }, 300)
+        }
+
+        private fun scheduleWhatsAppSearchRetry(attempt: Int) {
+            if (!shouldSearchAndSendWhatsApp || attempt > 25) return
+            mainHandler.postDelayed({
+                val inst = instance
+                if (inst != null && shouldSearchAndSendWhatsApp) {
+                    val root = inst.rootInActiveWindow
+                    val contact = targetWhatsAppContact
+                    val message = targetWhatsAppMessage ?: ""
+
+                    if (root != null && !contact.isNullOrBlank()) {
+                        // Step 1: Check if contact is directly visible on screen (e.g. recent chat list)
+                        val directNodes = root.findAccessibilityNodeInfosByText(contact)
+                        val validChatNode = directNodes.firstOrNull { node ->
+                            val text = node.text?.toString() ?: ""
+                            val desc = node.contentDescription?.toString() ?: ""
+                            text.contains(contact, ignoreCase = true) || desc.contains(contact, ignoreCase = true)
+                        }
+
+                        if (validChatNode != null) {
+                            if (inst.performSafeClick(validChatNode)) {
+                                Log.d("MayaAccessibility", "Clicked visible WhatsApp chat '$contact' directly!")
+                                shouldSearchAndSendWhatsApp = false
+                                startWhatsAppSendWatcher(message)
+                                return@postDelayed
+                            }
+                        }
+
+                        // Step 2: Look for search input already open
+                        val searchInputs = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/search_input")
+                            .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/search_src_text") }
+                            .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/search_input") }
+
+                        if (searchInputs.isNotEmpty()) {
+                            val input = searchInputs[0]
+                            val currentText = input.text?.toString() ?: ""
+                            if (!currentText.equals(contact, ignoreCase = true)) {
+                                val args = Bundle().apply {
+                                    putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, contact)
+                                }
+                                input.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                            }
+
+                            // Check filtered results after search text set
+                            mainHandler.postDelayed({
+                                val activeRoot = inst.rootInActiveWindow ?: return@postDelayed
+                                val results = activeRoot.findAccessibilityNodeInfosByText(contact)
+                                for (resNode in results) {
+                                    if (resNode != input && inst.performSafeClick(resNode)) {
+                                        Log.d("MayaAccessibility", "Clicked search result for '$contact'")
+                                        shouldSearchAndSendWhatsApp = false
+                                        startWhatsAppSendWatcher(message)
+                                        return@postDelayed
+                                    }
+                                }
+                            }, 500)
+                            return@postDelayed
+                        } else {
+                            // Step 3: Click Search icon to open search input
+                            val searchButtons = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/menuitem_search")
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/search_holder") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/menuitem_search") }
+
+                            if (searchButtons.isNotEmpty()) {
+                                inst.performSafeClick(searchButtons[0])
+                            } else {
+                                // Search by content description
+                                val descNodes = root.findAccessibilityNodeInfosByText("Search")
+                                    .ifEmpty { root.findAccessibilityNodeInfosByText("खोजें") }
+                                if (descNodes.isNotEmpty()) {
+                                    inst.performSafeClick(descNodes[0])
+                                }
+                            }
+                        }
+                    }
+                    scheduleWhatsAppSearchRetry(attempt + 1)
+                }
             }, 350)
+        }
+
+        private fun scheduleGeminiPromptRetry(attempt: Int) {
+            if (!shouldPasteGeminiPrompt || attempt > 25) return
+            mainHandler.postDelayed({
+                val inst = instance
+                val prompt = targetGeminiPrompt
+                if (inst != null && shouldPasteGeminiPrompt && !prompt.isNullOrBlank()) {
+                    val root = inst.rootInActiveWindow
+                    if (root != null) {
+                        // Find Gemini chat input field
+                        val inputNodes = root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/chat_input_text")
+                            .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/input_box") }
+                            .ifEmpty { root.findAccessibilityNodeInfosByText("Ask Gemini") }
+                            .ifEmpty { root.findAccessibilityNodeInfosByText("जेमिनी से पूछें") }
+
+                        var textInputNode: AccessibilityNodeInfo? = inputNodes.firstOrNull()
+                        if (textInputNode == null) {
+                            // Find any editable node in window
+                            textInputNode = findFirstEditableNode(root)
+                        }
+
+                        if (textInputNode != null) {
+                            val args = Bundle().apply {
+                                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, prompt)
+                            }
+                            textInputNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                            textInputNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+
+                            // Click Send button
+                            mainHandler.postDelayed({
+                                val activeRoot = inst.rootInActiveWindow ?: return@postDelayed
+                                val sendButtons = activeRoot.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/send_button")
+                                    .ifEmpty { activeRoot.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/submit_button") }
+                                    .ifEmpty { activeRoot.findAccessibilityNodeInfosByText("Send") }
+                                    .ifEmpty { activeRoot.findAccessibilityNodeInfosByText("भेजें") }
+
+                                for (btn in sendButtons) {
+                                    if (inst.performSafeClick(btn)) {
+                                        Log.d("MayaAccessibility", "Gemini Send prompt button clicked!")
+                                        shouldPasteGeminiPrompt = false
+                                        return@postDelayed
+                                    }
+                                }
+                                // Recursive fallback to find send icon
+                                if (inst.searchAndClickSendButton(activeRoot)) {
+                                    shouldPasteGeminiPrompt = false
+                                }
+                            }, 400)
+                            return@postDelayed
+                        }
+                    }
+                    scheduleGeminiPromptRetry(attempt + 1)
+                }
+            }, 350)
+        }
+
+        private fun findFirstEditableNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            if (node.isEditable) return node
+            for (i in 0 until node.childCount) {
+                val child = node.getChild(i) ?: continue
+                val found = findFirstEditableNode(child)
+                if (found != null) return found
+            }
+            return null
         }
 
         private fun scheduleInstagramSendRetry(attempt: Int) {
@@ -212,6 +391,11 @@ class ZoyaAccessibilityService : AccessibilityService() {
             handleWhatsAppSearchFlow()
         }
 
+        // Gemini prompt flow
+        if (shouldPasteGeminiPrompt && (packageName.contains("bard") || packageName.contains("gemini"))) {
+            scheduleGeminiPromptRetry(0)
+        }
+
         // Instagram auto-click send
         if (shouldAutoClickInstagram && packageName.contains("instagram")) {
             val root = rootInActiveWindow ?: return
@@ -238,9 +422,12 @@ class ZoyaAccessibilityService : AccessibilityService() {
     fun searchAndClickSendButton(node: AccessibilityNodeInfo): Boolean {
         val idsToTry = listOf(
             "com.whatsapp:id/send",
-            "com.whatsapp.w4b:id/send",
-            "com.whatsapp:id/send_button_container",
             "com.whatsapp:id/entry_send_button",
+            "com.whatsapp:id/send_button",
+            "com.whatsapp:id/voice_note_or_send_button",
+            "com.whatsapp.w4b:id/send",
+            "com.whatsapp.w4b:id/entry_send_button",
+            "com.whatsapp:id/send_button_container",
             "com.whatsapp:id/btn_send"
         )
         for (id in idsToTry) {
@@ -259,7 +446,7 @@ class ZoyaAccessibilityService : AccessibilityService() {
         val text = node.text?.toString()?.lowercase() ?: ""
 
         if (desc == "send" || desc == "send message" || desc == "भेजें" ||
-            desc.contains("bheje") || desc == "envio" || text == "send" || text == "भेजें"
+            desc.contains("bheje") || desc.contains("sandesh") || desc == "envio" || text == "send" || text == "भेजें"
         ) {
             if (performSafeClick(node)) return true
         }
@@ -274,34 +461,7 @@ class ZoyaAccessibilityService : AccessibilityService() {
     }
 
     private fun handleWhatsAppSearchFlow() {
-        val contact = targetWhatsAppContact ?: return
-        val message = targetWhatsAppMessage ?: ""
-        val root = rootInActiveWindow ?: return
-
-        val searchButtons = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/menuitem_search")
-            .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/search_holder") }
-        if (searchButtons.isNotEmpty()) {
-            performSafeClick(searchButtons[0])
-        }
-
-        val searchInputs = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/search_input")
-        if (searchInputs.isNotEmpty()) {
-            val inputNode = searchInputs[0]
-            val arguments = Bundle().apply {
-                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, contact)
-            }
-            inputNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
-
-            mainHandler.postDelayed({
-                val activeRoot = rootInActiveWindow ?: return@postDelayed
-                val contactNodes = activeRoot.findAccessibilityNodeInfosByText(contact)
-                if (contactNodes.isNotEmpty()) {
-                    performSafeClick(contactNodes[0])
-                    shouldSearchAndSendWhatsApp = false
-                    shouldAutoClickWhatsApp = true
-                }
-            }, 800)
-        }
+        scheduleWhatsAppSearchRetry(0)
     }
 
     // --- Instagram Automation ---

@@ -172,8 +172,48 @@ class FastIntentEngine(
             return true
         }
 
+        // 7.5 Gemini AI Image Generation with Prompt Auto-Paste
+        if ((query.contains("gemini") || query.contains("जेमिनी") || query.contains("photo banao") ||
+             query.contains("फोटो बनाओ") || query.contains("तस्वीर बनाओ") || query.contains("image banao") ||
+             query.contains("picture banao")) &&
+            (query.contains("banao") || query.contains("generate") || query.contains("बनाओ") || query.contains("बना दो") || query.contains("bana do"))
+        ) {
+            val cleanPrompt = rawText
+                .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
+                .replace(Regex("(?i)(gemini|जेमिनी|se|par|me|ko|kholo|aur|photo|image|picture|banao|bana do|generate|karo|करो|बनाओ|बना दो|की|एक|ek)"), " ")
+                .trim()
+                .replace(Regex("\\s+"), " ")
+            val finalPrompt = if (cleanPrompt.length >= 2) "Create a realistic 4K high quality image of $cleanPrompt" else "Create a beautiful artistic 4K photo"
+            scope.launch(Dispatchers.IO) {
+                toolEngine.openGeminiWithPrompt(finalPrompt)
+            }
+            respondInstant(userText = rawText, reply = "हाँ बाबू, जेमिनी में '$finalPrompt' का प्रॉम्प्ट लगा दिया है! फोटो तैयार हो रही है ❤️")
+            return true
+        }
+
+        // 7.6 WhatsApp Message Send Automation (Runs BEFORE simple openApp!)
+        val isWhatsAppSendQuery = (query.contains("whatsapp") || query.contains("व्हाट्सएप") || query.contains("व्हाट्सऐप") ||
+                query.contains("send karo") || query.contains("bhejo") || query.contains("भेजो") || query.contains("सेंड करो") ||
+                query.contains("मैसेज") || query.contains("message")) &&
+                (query.contains("ko") || query.contains("ke paas") || query.contains("के पास") || query.contains("को") ||
+                 query.contains("par") || query.contains("पर") || query.contains("hi") || query.contains("हाय"))
+
+        if (isWhatsAppSendQuery) {
+            val parsed = extractWhatsAppTarget(query, rawText)
+            if (parsed != null) {
+                val (targetContact, targetMessage) = parsed
+                scope.launch(Dispatchers.IO) {
+                    toolEngine.sendWhatsApp(targetContact, targetMessage)
+                }
+                respondInstant(userText = rawText, reply = "हाँ बाबू, $targetContact को व्हाट्सएप पर '$targetMessage' भेज रही हूँ! ❤️")
+                return true
+            }
+        }
+
         // 8. Camera / Selfie
-        if (query.contains("camera") || query.contains("कैमरा") || query.contains("selfie") || query.contains("सेल्फी") || query.contains("photo")) {
+        val isCameraAction = (query.contains("camera") || query.contains("कैमरा") || query.contains("selfie") || query.contains("सेल्फी")) ||
+                ((query.contains("photo") || query.contains("फोटो")) && (query.contains("khincho") || query.contains("kheencho") || query.contains("lo") || query.contains("click") || query.contains("लो") || query.contains("खींचो")))
+        if (isCameraAction && !query.contains("banao") && !query.contains("बनाओ") && !query.contains("gemini")) {
             val mode = if (query.contains("selfie") || query.contains("सेल्फी")) "selfie" else "photo"
             scope.launch(Dispatchers.IO) {
                 toolEngine.execute("openCamera", buildJsonObject { put("mode", mode) })
@@ -338,5 +378,48 @@ class FastIntentEngine(
             onStateChange(ZoyaState.IDLE)
             onDone?.invoke()
         }
+    }
+
+    private fun extractWhatsAppTarget(query: String, rawText: String): Pair<String, String>? {
+        // Examples:
+        // "मेरे फोन का व्हाट्सएप खोलो और विकास के पास हाय सेंड करो"
+        // "विकास को व्हाट्सएप पर हाय सेंड करो"
+        // "विकास के पास हाय सेंड करो"
+        // "विकास को हाय भेजो"
+        val clean = rawText
+            .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
+            .replace(Regex("(?i)(mere phone ka|phone ka|kholo aur|kholo|open|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|खोलो)"), " ")
+            .trim()
+
+        val regexWithSplitters = Regex("(?i)(.*?)\\s*(?:ke paas|के पास|ko|को)\\s*(?:whatsapp par|whatsapp pe|whatsapp me|व्हाट्सएप पर)?\\s*(.*?)\\s*(?:likhkar send karo|likh kar send karo|likhkar bhejo|send karo|send kar do|bhejo|bhej do|सेंड करो|सेंड कर दो|भेजो|भेज दो|मैसेज करो|मैसेज भेज दो)?$")
+        val match = regexWithSplitters.find(clean)
+        if (match != null) {
+            var contact = match.groupValues[1]
+                .replace(Regex("(?i)(whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), "")
+                .trim()
+            var message = match.groupValues[2]
+                .replace(Regex("(?i)(whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), "")
+                .trim()
+
+            contact = contact.replace(Regex("(?i)^(aur|and|to|par|pe)\\s*"), "").trim()
+
+            if (contact.isNotBlank()) {
+                if (message.isBlank()) {
+                    message = "हाय"
+                }
+                return Pair(contact, message)
+            }
+        }
+
+        // Fallback names
+        val knownNames = listOf("विकास शर्मा", "विकास", "vikas", "अमित", "amit", "राहुल", "rahul", "राजन", "rajan", "संजय", "sanjay", "पापा", "papa", "मम्मी", "mummy")
+        for (name in knownNames) {
+            if (clean.contains(name, ignoreCase = true)) {
+                val msg = if (clean.contains("हाय") || clean.contains("hi", ignoreCase = true)) "हाय" else "नमस्ते"
+                return Pair(name, msg)
+            }
+        }
+
+        return null
     }
 }

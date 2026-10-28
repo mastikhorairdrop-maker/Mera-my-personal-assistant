@@ -287,11 +287,8 @@ class ToolExecutionEngine(private val context: Context) {
         }
     }
 
-    private fun sendWhatsApp(nameOrNumber: String, message: String): String {
-        if (message.isBlank()) {
-            return "NEED_MESSAGE: Babu, $nameOrNumber ko kya message bhejna hai WhatsApp par?"
-        }
-
+    fun sendWhatsApp(nameOrNumber: String, message: String): String {
+        val finalMsg = if (message.isBlank()) "हाय" else message
         val isNumber = nameOrNumber.count { it.isDigit() } >= 7 || nameOrNumber.matches(Regex("^[0-9+\\-*#]+$"))
 
         val number = if (isNumber) {
@@ -313,39 +310,61 @@ class ToolExecutionEngine(private val context: Context) {
                 cleanNumber = "91${cleanNumber.substring(1)}"
             }
 
-            val url = "https://api.whatsapp.com/send?phone=$cleanNumber&text=${Uri.encode(message)}"
+            val url = "https://api.whatsapp.com/send?phone=$cleanNumber&text=${Uri.encode(finalMsg)}"
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                 setPackage("com.whatsapp")
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
             try {
-                ZoyaAccessibilityService.shouldAutoClickWhatsApp = true
+                ZoyaAccessibilityService.startWhatsAppSendWatcher(finalMsg)
                 context.startActivity(intent)
-                return "Sending '$message' to $nameOrNumber on WhatsApp."
+                return "Sending '$finalMsg' to $nameOrNumber on WhatsApp."
             } catch (e: Exception) {
-                ZoyaAccessibilityService.shouldAutoClickWhatsApp = false
                 return "WhatsApp is not installed on this device."
             }
         } else {
-            // Contact not in address book: search directly inside WhatsApp
+            // Contact not in address book or not resolved: search & send directly inside WhatsApp
             try {
-                ZoyaAccessibilityService.targetWhatsAppContact = nameOrNumber
-                ZoyaAccessibilityService.targetWhatsAppMessage = message
-                ZoyaAccessibilityService.shouldSearchAndSendWhatsApp = true
+                ZoyaAccessibilityService.startWhatsAppSearchAndSend(nameOrNumber, finalMsg)
 
                 val pm = context.packageManager
                 val launchIntent = pm.getLaunchIntentForPackage("com.whatsapp")
                 if (launchIntent != null) {
                     launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(launchIntent)
-                    return "Searching for $nameOrNumber in WhatsApp to send '$message'."
+                    return "Opening WhatsApp to send '$finalMsg' to $nameOrNumber."
                 } else {
                     return "WhatsApp is not installed on this device."
                 }
             } catch (e: Exception) {
                 return "Failed to open WhatsApp: ${e.message}"
             }
+        }
+    }
+
+    fun openGeminiWithPrompt(prompt: String): String {
+        val finalPrompt = if (prompt.isBlank()) "Create a beautiful 4K high quality image" else prompt
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("GeminiPrompt", finalPrompt))
+
+            val pm = context.packageManager
+            val geminiIntent = pm.getLaunchIntentForPackage("com.google.android.apps.bard")
+            if (geminiIntent != null) {
+                geminiIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ZoyaAccessibilityService.startGeminiPromptPaster(finalPrompt)
+                context.startActivity(geminiIntent)
+                return "Opened Gemini with prompt: '$finalPrompt'"
+            } else {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://gemini.google.com/app")).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(webIntent)
+                return "Opened Gemini Web with prompt copied to clipboard: '$finalPrompt'"
+            }
+        } catch (e: Exception) {
+            return "Failed to launch Gemini: ${e.message}"
         }
     }
 
@@ -487,24 +506,48 @@ class ToolExecutionEngine(private val context: Context) {
                 val startsWithMatches = mutableListOf<Pair<String, String>>()
                 val containsMatches = mutableListOf<Pair<String, String>>()
 
-                val cleanPattern = namePattern.lowercase().replace(Regex("[^a-z0-9 ]"), "").trim()
+                // Keep all Unicode letters (including Hindi Devanagari) and numbers
+                val cleanPattern = namePattern.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), "").trim()
                 val searchWords = cleanPattern.split(" ").filter { it.isNotEmpty() }
+
+                // Build alternate search keys (transliteration between Hindi and English)
+                val transliterationMap = mapOf(
+                    "विकास" to "vikas", "vikas" to "विकास",
+                    "अमित" to "amit", "amit" to "अमित",
+                    "राहुल" to "rahul", "rahul" to "राहुल",
+                    "राजन" to "rajan", "rajan" to "राजन",
+                    "रितेश" to "ritesh", "ritesh" to "रितेश",
+                    "संजय" to "sanjay", "sanjay" to "संजय",
+                    "पापा" to "papa", "papa" to "पापा",
+                    "मम्मी" to "mummy", "mummy" to "मम्मी",
+                    "भैया" to "bhaiya", "bhaiya" to "भैया",
+                    "शर्मा" to "sharma", "sharma" to "शर्मा",
+                    "शुक्ला" to "shukla", "shukla" to "शुक्ला"
+                )
+                val alternateKey = transliterationMap[cleanPattern] ?: ""
 
                 while (cursor.moveToNext()) {
                     val contactName = cursor.getString(nameIdx) ?: continue
                     val contactNum = cursor.getString(numIdx) ?: continue
-                    val cleanContactName = contactName.lowercase().replace(Regex("[^a-z0-9 ]"), "").trim()
+                    val cleanContactName = contactName.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), "").trim()
 
                     if (cleanContactName.isEmpty()) continue
 
                     val contactNameNoSpace = cleanContactName.replace(" ", "")
                     val patternNoSpace = cleanPattern.replace(" ", "")
 
-                    if (contactNameNoSpace == patternNoSpace || cleanContactName == cleanPattern) {
+                    val matchesDirect = contactNameNoSpace == patternNoSpace || cleanContactName == cleanPattern ||
+                            (alternateKey.isNotEmpty() && cleanContactName.contains(alternateKey))
+                    val matchesPrefix = contactNameNoSpace.startsWith(patternNoSpace) || cleanContactName.startsWith(cleanPattern) ||
+                            (alternateKey.isNotEmpty() && cleanContactName.startsWith(alternateKey))
+                    val matchesWords = (searchWords.isNotEmpty() && searchWords.all { cleanContactName.contains(it) }) ||
+                            cleanContactName.contains(cleanPattern)
+
+                    if (matchesDirect) {
                         exactMatches.add(Pair(contactName, contactNum))
-                    } else if (contactNameNoSpace.startsWith(patternNoSpace) || cleanContactName.startsWith(cleanPattern)) {
+                    } else if (matchesPrefix) {
                         startsWithMatches.add(Pair(contactName, contactNum))
-                    } else if (searchWords.isNotEmpty() && searchWords.all { cleanContactName.contains(it) }) {
+                    } else if (matchesWords) {
                         containsMatches.add(Pair(contactName, contactNum))
                     } else if (contactNameNoSpace.contains(patternNoSpace) && patternNoSpace.length > 2) {
                         containsMatches.add(Pair(contactName, contactNum))
