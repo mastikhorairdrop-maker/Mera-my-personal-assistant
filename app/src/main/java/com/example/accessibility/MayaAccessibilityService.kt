@@ -247,7 +247,11 @@ class MayaAccessibilityService : AccessibilityService() {
 
                                 mainHandler.postDelayed({
                                     val activeRoot = inst.rootInActiveWindow ?: return@postDelayed
-                                    val results = activeRoot.findAccessibilityNodeInfosByText(contact)
+                                    var results = activeRoot.findAccessibilityNodeInfosByText(contact)
+                                    if (results.isEmpty() && contact.contains(" ")) {
+                                        val firstName = contact.split(" ").first()
+                                        results = activeRoot.findAccessibilityNodeInfosByText(firstName)
+                                    }
                                     for (resNode in results) {
                                         if (resNode != input && inst.performSafeClick(resNode)) {
                                             Log.d(TAG, "Clicked search result for '$contact'")
@@ -256,7 +260,15 @@ class MayaAccessibilityService : AccessibilityService() {
                                             return@postDelayed
                                         }
                                     }
-                                }, 400)
+                                    // Fallback: tap top item in WhatsApp search results list
+                                    val firstResultY = (inst.resources.displayMetrics.density * 135f)
+                                    val centerX = inst.resources.displayMetrics.widthPixels * 0.45f
+                                    if (dispatchGestureClick(centerX, firstResultY)) {
+                                        Log.d(TAG, "Dispatched physical click on top WhatsApp search result")
+                                        shouldSearchAndSendWhatsApp = false
+                                        startWhatsAppSendWatcher(message)
+                                    }
+                                }, 500)
                                 return@postDelayed
                             } else {
                                 // Step 3: Open Search

@@ -168,7 +168,7 @@ object UserSettingsManager {
     }
 
     fun getVoiceName(context: Context): String {
-        return getPrefs(context).getString(KEY_VOICE_NAME, "Kore") ?: "Kore"
+        return getPrefs(context).getString(KEY_VOICE_NAME, "Aoede") ?: "Aoede"
     }
 
     fun setVoiceName(context: Context, voice: String) {

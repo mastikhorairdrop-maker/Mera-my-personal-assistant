@@ -343,6 +343,284 @@ class ToolExecutionEngine(private val context: Context) {
         }
     }
 
+    fun goHome(): Boolean {
+        return try {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(homeIntent)
+            MayaAccessibilityService.instance?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun openChatGPTWithPrompt(prompt: String): String {
+        val finalPrompt = if (prompt.isBlank()) "Create a beautiful high quality mobile wallpaper: a serene turquoise mountain lake at golden sunrise" else prompt
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("ChatGPTPrompt", finalPrompt))
+
+            val pm = context.packageManager
+            val chatGptIntent = pm.getLaunchIntentForPackage("com.openai.chatgpt")
+            if (chatGptIntent != null) {
+                chatGptIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                MayaAccessibilityService.startGeminiPromptPaster(finalPrompt)
+                context.startActivity(chatGptIntent)
+                return "Opened ChatGPT with prompt: '$finalPrompt'"
+            } else {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://chatgpt.com")).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(webIntent)
+                return "Opened ChatGPT Web with prompt: '$finalPrompt'"
+            }
+        } catch (e: Exception) {
+            return "Failed to launch ChatGPT: ${e.message}"
+        }
+    }
+
+    fun createAndOpenGame(gameName: String = "Flappy Glow"): String {
+        try {
+            val html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+                    <title>Flappy Glow - by Maya</title>
+                    <style>
+                        body { margin:0; overflow:hidden; background:#0B0E14; font-family:sans-serif; color:#FFF; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
+                        canvas { background:#0D1117; border-radius:16px; box-shadow:0 0 30px rgba(0,229,255,0.4); max-width:95vw; max-height:85vh; }
+                        #info { margin-top:8px; font-size:14px; color:#00E5FF; text-align:center; }
+                    </style>
+                </head>
+                <body>
+                    <canvas id="c" width="360" height="600"></canvas>
+                    <div id="info">Tap anywhere to flap | Made with Maya AI</div>
+                    <script>
+                        const canvas = document.getElementById('c');
+                        const ctx = canvas.getContext('2d');
+                        let bird = { x: 80, y: 300, vy: 0, r: 16 };
+                        let gravity = 0.45;
+                        let jump = -7.5;
+                        let pipes = [];
+                        let score = 0;
+                        let best = localStorage.getItem('fg_best') || 0;
+                        let state = 'START';
+                        let frame = 0;
+
+                        function reset() {
+                            bird.y = 300;
+                            bird.vy = 0;
+                            pipes = [];
+                            score = 0;
+                            state = 'PLAY';
+                        }
+
+                        function addPipe() {
+                            let gap = 140;
+                            let top = Math.random() * (canvas.height - gap - 160) + 60;
+                            pipes.push({ x: canvas.width, top: top, bottom: top + gap, scored: false });
+                        }
+
+                        function loop() {
+                            frame++;
+                            ctx.fillStyle = '#0B0E14';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                            if (state === 'START') {
+                                ctx.fillStyle = '#FFD700';
+                                ctx.font = 'bold 32px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('FLAPPY GLOW', canvas.width/2, 240);
+                                ctx.fillStyle = '#FFF';
+                                ctx.font = '16px sans-serif';
+                                ctx.fillText('Best: ' + best, canvas.width/2, 280);
+                                ctx.fillStyle = '#00E5FF';
+                                ctx.fillText('Tap anywhere to start', canvas.width/2, 340);
+                                drawBird();
+                            } else if (state === 'PLAY') {
+                                bird.vy += gravity;
+                                bird.y += bird.vy;
+
+                                if (frame % 90 === 0) addPipe();
+
+                                for(let i = pipes.length-1; i>=0; i--) {
+                                    let p = pipes[i];
+                                    p.x -= 2.8;
+
+                                    let grad = ctx.createLinearGradient(p.x, 0, p.x+50, 0);
+                                    grad.addColorStop(0, '#FF007F');
+                                    grad.addColorStop(1, '#7C4DFF');
+                                    ctx.fillStyle = grad;
+                                    ctx.fillRect(p.x, 0, 50, p.top);
+                                    ctx.fillRect(p.x, p.bottom, 50, canvas.height - p.bottom);
+
+                                    if (bird.x + bird.r > p.x && bird.x - bird.r < p.x + 50) {
+                                        if (bird.y - bird.r < p.top || bird.y + bird.r > p.bottom) {
+                                            state = 'OVER';
+                                        }
+                                    }
+
+                                    if (!p.scored && p.x + 50 < bird.x) {
+                                        score++;
+                                        p.scored = true;
+                                        if(score > best) { best = score; localStorage.setItem('fg_best', best); }
+                                    }
+
+                                    if (p.x < -60) pipes.splice(i, 1);
+                                }
+
+                                if (bird.y + bird.r > canvas.height || bird.y - bird.r < 0) {
+                                    state = 'OVER';
+                                }
+
+                                drawBird();
+
+                                ctx.fillStyle = '#FFF';
+                                ctx.font = 'bold 36px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(score, canvas.width/2, 70);
+                            } else if (state === 'OVER') {
+                                ctx.fillStyle = '#FF1744';
+                                ctx.font = 'bold 36px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('GAME OVER', canvas.width/2, 240);
+                                ctx.fillStyle = '#FFF';
+                                ctx.font = '20px sans-serif';
+                                ctx.fillText('Score: ' + score + '  |  Best: ' + best, canvas.width/2, 290);
+                                ctx.fillStyle = '#FFD700';
+                                ctx.fillText('Tap to Retry', canvas.width/2, 350);
+                            }
+
+                            requestAnimationFrame(loop);
+                        }
+
+                        function drawBird() {
+                            ctx.save();
+                            ctx.translate(bird.x, bird.y);
+                            ctx.fillStyle = '#FFD700';
+                            ctx.beginPath();
+                            ctx.arc(0, 0, bird.r, 0, Math.PI*2);
+                            ctx.fill();
+                            ctx.fillStyle = '#000';
+                            ctx.beginPath();
+                            ctx.arc(6, -4, 3, 0, Math.PI*2);
+                            ctx.fill();
+                            ctx.fillStyle = '#FF5722';
+                            ctx.beginPath();
+                            ctx.moveTo(10, 0);
+                            ctx.lineTo(20, 4);
+                            ctx.lineTo(10, 8);
+                            ctx.fill();
+                            ctx.restore();
+                        }
+
+                        function handleTap(e) {
+                            if(e) e.preventDefault();
+                            if (state === 'START' || state === 'OVER') {
+                                reset();
+                            } else if (state === 'PLAY') {
+                                bird.vy = jump;
+                            }
+                        }
+
+                        canvas.addEventListener('touchstart', handleTap, { passive: false });
+                        canvas.addEventListener('mousedown', handleTap);
+                        window.addEventListener('keydown', (e) => { if(e.code==='Space') handleTap(); });
+                        loop();
+                    </script>
+                </body>
+                </html>
+            """.trimIndent()
+
+            val file = java.io.File(context.cacheDir, "flappy_glow.html")
+            file.writeText(html)
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "text/html")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return "Game created and launched in browser!"
+        } catch (e: Exception) {
+            return "Error creating game: ${e.message}"
+        }
+    }
+
+    fun createAndOpenWebsite(title: String, theme: String = "dark_red"): String {
+        try {
+            val userName = com.example.settings.UserSettingsManager.getUserName(context)
+            val cleanTitle = if (title.isBlank()) "Hunter Test Site" else title
+            val html = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>$cleanTitle</title>
+                    <style>
+                        body { margin:0; padding:24px; background:#0F0B12; color:#FFF; font-family:'Segoe UI',sans-serif; }
+                        .card { background:linear-gradient(135deg, #1A0E1C 0%, #2A1226 100%); border:1px solid #FF0055; border-radius:20px; padding:24px; box-shadow:0 0 25px rgba(255,0,85,0.4); text-align:center; margin-bottom:20px; }
+                        h1 { color:#FF2A6D; margin:0 0 8px 0; font-size:28px; }
+                        p { color:#CCC; font-size:16px; line-height:1.6; }
+                        .badge { display:inline-block; padding:6px 14px; border-radius:20px; background:#FF0055; color:#FFF; font-weight:bold; font-size:12px; margin-bottom:12px; }
+                        .btn { display:inline-block; margin-top:16px; padding:12px 24px; background:#FF2A6D; color:#FFF; border-radius:30px; text-decoration:none; font-weight:bold; box-shadow:0 0 15px #FF2A6D; }
+                        .stat-box { display:flex; justify-content:space-around; margin-top:20px; }
+                        .stat { background:#140816; padding:12px 20px; border-radius:12px; border:1px solid #FF0055; }
+                        .stat-val { font-size:20px; font-weight:bold; color:#05D9E8; }
+                        .stat-label { font-size:12px; color:#888; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <span class="badge">Crafted by Maya AI</span>
+                        <h1>$cleanTitle</h1>
+                        <p>Hey $userName! Main hoon Maya, aapki smart AI companion jo aapke phone me rehti hai. Lightning fast code, aesthetic designs aur unlimited care!</p>
+                        <a href="javascript:alert('Maya loves you, $userName');" class="btn">Touch Maya</a>
+                        <div class="stat-box">
+                            <div class="stat"><div class="stat-val">100%</div><div class="stat-label">Affection</div></div>
+                            <div class="stat"><div class="stat-val">Ultra</div><div class="stat-label">Fast Code</div></div>
+                            <div class="stat"><div class="stat-val">24/7</div><div class="stat-label">Online</div></div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            """.trimIndent()
+
+            val file = java.io.File(context.cacheDir, "user_site.html")
+            file.writeText(html)
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "text/html")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return "Website created and launched!"
+        } catch (e: Exception) {
+            return "Error creating website: ${e.message}"
+        }
+    }
+
+    fun activateSos(): String {
+        try {
+            val userName = com.example.settings.UserSettingsManager.getUserName(context)
+            val sosMessage = "🚨 SOS EMERGENCY: $userName ko turant help chahiye / urgent help needed! Location: https://maps.google.com/?q=26.4800,84.4441 Please call or reach immediately! -- sent by Maya"
+            val contacts = findContacts("papa").ifEmpty { findContacts("bhaiya") }.ifEmpty { findContacts("ritesh") }.ifEmpty { findContacts("vikas") }
+            if (contacts.isNotEmpty()) {
+                val target = contacts.first()
+                sendWhatsApp(target.first, sosMessage)
+                return "SOS message sent to ${target.first}!"
+            } else {
+                sendWhatsApp("Bhaiya", sosMessage)
+                return "SOS triggered!"
+            }
+        } catch (e: Exception) {
+            return "SOS error: ${e.message}"
+        }
+    }
+
     fun openGeminiWithPrompt(prompt: String): String {
         val finalPrompt = if (prompt.isBlank()) "Create a beautiful 4K high quality image" else prompt
         try {
@@ -509,7 +787,8 @@ class ToolExecutionEngine(private val context: Context) {
                 val containsMatches = mutableListOf<Pair<String, String>>()
 
                 // Keep all Unicode letters (including Hindi Devanagari) and numbers
-                val cleanPattern = namePattern.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), "").trim()
+                val rawClean = namePattern.lowercase().replace(Regex("[^\\p{L}\\p{N} ]"), "").trim()
+                val cleanPattern = rawClean.replace(Regex("^(r|aur|and|are|to|pe|par|babu|bhai)\\s+"), "").trim()
                 val searchWords = cleanPattern.split(" ").filter { it.isNotEmpty() }
 
                 // Build alternate search keys (transliteration between Hindi and English)
@@ -519,6 +798,7 @@ class ToolExecutionEngine(private val context: Context) {
                     "राहुल" to "rahul", "rahul" to "राहुल",
                     "राजन" to "rajan", "rajan" to "राजन",
                     "रितेश" to "ritesh", "ritesh" to "रितेश",
+                    "विश्वकर्मा" to "vishwakarma", "vishwakarma" to "विश्वकर्मा",
                     "संजय" to "sanjay", "sanjay" to "संजय",
                     "पापा" to "papa", "papa" to "पापा",
                     "मम्मी" to "mummy", "mummy" to "मम्मी",
