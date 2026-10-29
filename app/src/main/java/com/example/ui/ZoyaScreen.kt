@@ -61,7 +61,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.BuildConfig
 import com.example.ServiceStatus
 import com.example.ZoyaForegroundService
-import com.example.accessibility.ZoyaAccessibilityService
+import com.example.accessibility.MayaAccessibilityService
 import com.example.live.ZoyaState
 import java.text.SimpleDateFormat
 import java.util.*
@@ -1642,7 +1642,7 @@ fun MayaFullSettingsSheet(
         mutableStateOf(prefs.getString("selected_voice", "Aoede") ?: "Aoede")
     }
 
-    val isAccessibilityActive = ZoyaAccessibilityService.isAccessibilityPermissionGranted(context)
+    val isAccessibilityActive = MayaAccessibilityService.isAccessibilityPermissionGranted(context)
     val isBatteryExempt = remember { ZoyaForegroundService.isBatteryOptimizationIgnored(context) }
 
     Column(

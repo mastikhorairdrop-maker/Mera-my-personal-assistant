@@ -173,17 +173,21 @@ class FastIntentEngine(
         }
 
         // 7.5 Gemini AI Image Generation with Prompt Auto-Paste
-        if ((query.contains("gemini") || query.contains("जेमिनी") || query.contains("photo banao") ||
-             query.contains("फोटो बनाओ") || query.contains("तस्वीर बनाओ") || query.contains("image banao") ||
-             query.contains("picture banao")) &&
-            (query.contains("banao") || query.contains("generate") || query.contains("बनाओ") || query.contains("बना दो") || query.contains("bana do"))
-        ) {
+        val isGeminiOrImageQuery = (query.contains("gemini") || query.contains("जेमिनी") || query.contains("जैमनी") ||
+                query.contains("jamunai") || query.contains("जमुनाई") || query.contains("जमनाई") ||
+                query.contains("bard") || query.contains("photo banao") || query.contains("फोटो बनाओ") ||
+                query.contains("तस्वीर बनाओ") || query.contains("image banao") || query.contains("picture banao")) &&
+                (query.contains("banao") || query.contains("generate") || query.contains("बनाओ") ||
+                 query.contains("बना दो") || query.contains("bana do") || query.contains("image") || query.contains("photo"))
+
+        if (isGeminiOrImageQuery) {
             val cleanPrompt = rawText
                 .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
-                .replace(Regex("(?i)(gemini|जेमिनी|se|par|me|ko|kholo|aur|photo|image|picture|banao|bana do|generate|karo|करो|बनाओ|बना दो|की|एक|ek)"), " ")
+                .replace(Regex("(?i)(google|गूगल|gemini|जेमिनी|जैमनी|jamunai|जमुनाई|जमनाई|bard|open karke|karke|kholo aur|kholo|aur|se|par|me|ko|photo|image|picture|banao|bana do|generate|karo|करो|बनाओ|बना दो|की|एक|ek)"), " ")
                 .trim()
                 .replace(Regex("\\s+"), " ")
-            val finalPrompt = if (cleanPrompt.length >= 2) "Create a realistic 4K high quality image of $cleanPrompt" else "Create a beautiful artistic 4K photo"
+            val promptSubject = if (cleanPrompt.length >= 2) cleanPrompt else "realistic lion in the wild"
+            val finalPrompt = "Create a realistic 4K high quality image of $promptSubject"
             scope.launch(Dispatchers.IO) {
                 toolEngine.openGeminiWithPrompt(finalPrompt)
             }
@@ -196,7 +200,8 @@ class FastIntentEngine(
                 query.contains("send karo") || query.contains("bhejo") || query.contains("भेजो") || query.contains("सेंड करो") ||
                 query.contains("मैसेज") || query.contains("message")) &&
                 (query.contains("ko") || query.contains("ke paas") || query.contains("के पास") || query.contains("को") ||
-                 query.contains("par") || query.contains("पर") || query.contains("hi") || query.contains("हाय"))
+                 query.contains("par") || query.contains("पर") || query.contains("hi") || query.contains("हाय") ||
+                 query.contains("ritesh") || query.contains("रितेश") || query.contains("vikas") || query.contains("विकास"))
 
         if (isWhatsAppSendQuery) {
             val parsed = extractWhatsAppTarget(query, rawText)
@@ -210,10 +215,24 @@ class FastIntentEngine(
             }
         }
 
+        // 7.7 Instagram Message Automation
+        if ((query.contains("instagram") || query.contains("इंस्टाग्राम") || query.contains("insta")) &&
+            (query.contains("message") || query.contains("मैसेज") || query.contains("dm") || query.contains("bhejo") || query.contains("send"))
+        ) {
+            val words = rawText.split(Regex("\\s+"))
+            val targetUser = words.firstOrNull { it.startsWith("@") }?.removePrefix("@") ?: "friend"
+            val message = "Hi from Maya!"
+            scope.launch(Dispatchers.IO) {
+                toolEngine.sendInstagramMessage(targetUser, message)
+            }
+            respondInstant(userText = rawText, reply = "हाँ बाबू, इंस्टाग्राम पर मैसेज भेज रही हूँ!")
+            return true
+        }
+
         // 8. Camera / Selfie
         val isCameraAction = (query.contains("camera") || query.contains("कैमरा") || query.contains("selfie") || query.contains("सेल्फी")) ||
                 ((query.contains("photo") || query.contains("फोटो")) && (query.contains("khincho") || query.contains("kheencho") || query.contains("lo") || query.contains("click") || query.contains("लो") || query.contains("खींचो")))
-        if (isCameraAction && !query.contains("banao") && !query.contains("बनाओ") && !query.contains("gemini")) {
+        if (isCameraAction && !query.contains("banao") && !query.contains("बनाओ") && !query.contains("gemini") && !query.contains("jamunai")) {
             val mode = if (query.contains("selfie") || query.contains("सेल्फी")) "selfie" else "photo"
             scope.launch(Dispatchers.IO) {
                 toolEngine.execute("openCamera", buildJsonObject { put("mode", mode) })
@@ -228,6 +247,10 @@ class FastIntentEngine(
             "whatsapp" to "WhatsApp",
             "व्हाट्सएप" to "WhatsApp",
             "व्हाट्सऐप" to "WhatsApp",
+            "gemini" to "Google Gemini",
+            "जेमिनी" to "Google Gemini",
+            "jamunai" to "Google Gemini",
+            "जमुनाई" to "Google Gemini",
             "youtube" to "YouTube",
             "यूट्यूब" to "YouTube",
             "instagram" to "Instagram",
@@ -244,6 +267,11 @@ class FastIntentEngine(
         if (query.contains("kholo") || query.contains("open") || query.contains("खोलो") || query.contains("chalao")) {
             for ((key, appName) in appMatches) {
                 if (query.contains(key)) {
+                    if (appName == "Google Gemini") {
+                        scope.launch(Dispatchers.IO) { toolEngine.openGeminiWithPrompt("Hello Gemini") }
+                        respondInstant(userText = rawText, reply = "Ji babu, Google Gemini khol rahi hoon!")
+                        return true
+                    }
                     scope.launch(Dispatchers.IO) {
                         toolEngine.execute("openApp", buildJsonObject { put("packageName", appName) })
                     }
@@ -276,7 +304,7 @@ class FastIntentEngine(
             query.contains("लॉक कर दो") || query.contains("स्क्रीन ऑफ") || query == "lock" || query == "लॉक" ||
             (query.contains("lock") && (query.contains("kardo") || query.contains("karo") || query.contains("phone")))
         ) {
-            val locked = com.example.accessibility.ZoyaAccessibilityService.lockScreenDirectly(context)
+            val locked = com.example.accessibility.MayaAccessibilityService.lockScreenDirectly(context)
             if (locked) {
                 respondInstant(userText = rawText, reply = "हाँ बाबू, फोन लॉक कर दिया!")
             } else {
@@ -295,7 +323,7 @@ class FastIntentEngine(
             return true
         }
         if (query.contains("home screen") || query.contains("home jao") || query.contains("होम") || query == "home") {
-            val service = com.example.accessibility.ZoyaAccessibilityService.instance
+            val service = com.example.accessibility.MayaAccessibilityService.instance
             if (service != null) {
                 service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)
             } else {
@@ -305,7 +333,7 @@ class FastIntentEngine(
             return true
         }
         if (query.contains("back jao") || query.contains("back karo") || query.contains("पीछे") || query == "back") {
-            val service = com.example.accessibility.ZoyaAccessibilityService.instance
+            val service = com.example.accessibility.MayaAccessibilityService.instance
             if (service != null) {
                 service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
             } else {
@@ -315,7 +343,7 @@ class FastIntentEngine(
             return true
         }
         if (query.contains("recent apps") || query.contains("recents") || query.contains("रीसेंट") || query.contains("हाल के")) {
-            val service = com.example.accessibility.ZoyaAccessibilityService.instance
+            val service = com.example.accessibility.MayaAccessibilityService.instance
             if (service != null) {
                 service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS)
             } else {

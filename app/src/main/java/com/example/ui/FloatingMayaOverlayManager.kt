@@ -88,6 +88,7 @@ object FloatingMayaOverlayManager {
                         com.example.live.MayaSpeaker.speak(sweetGreeting) {
                             ZoyaForegroundService.currentState = ZoyaState.LISTENING
                             ZoyaForegroundService.onStateChange?.invoke(ZoyaState.LISTENING)
+                            service.triggerVoiceCommand()
                         }
                     } else {
                         // Launch app main screen if service isn't alive

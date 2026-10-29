@@ -7,7 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.BatteryManager
 import android.provider.ContactsContract
-import com.example.accessibility.ZoyaAccessibilityService
+import com.example.accessibility.MayaAccessibilityService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
@@ -77,24 +77,24 @@ class ToolExecutionEngine(private val context: Context) {
                     openNotificationPanel()
                 }
                 "openQuickSettings" -> {
-                    val service = ZoyaAccessibilityService.instance
+                    val service = MayaAccessibilityService.instance
                     if (service != null && service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)) {
                         "Quick settings panel opened."
                     } else "Failed to open quick settings."
                 }
                 "clickTextOnScreen" -> {
                     val text = args["text"]?.jsonPrimitive?.content ?: return@withContext "Error: Missing text"
-                    val success = ZoyaAccessibilityService.clickTextOnScreen(text)
+                    val success = MayaAccessibilityService.clickTextOnScreen(text)
                     if (success) "Clicked on '$text'." else "Failed to click on '$text'."
                 }
                 "pressHome" -> {
-                    val service = ZoyaAccessibilityService.instance
+                    val service = MayaAccessibilityService.instance
                     if (service != null && service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)) {
                         "Navigated to Home screen."
                     } else "Accessibility service not active."
                 }
                 "pressBack" -> {
-                    val service = ZoyaAccessibilityService.instance
+                    val service = MayaAccessibilityService.instance
                     if (service != null && service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)) {
                         "Pressed back."
                     } else "Accessibility service not active."
@@ -317,7 +317,7 @@ class ToolExecutionEngine(private val context: Context) {
             }
 
             try {
-                ZoyaAccessibilityService.startWhatsAppSendWatcher(finalMsg)
+                MayaAccessibilityService.startWhatsAppSendWatcher(finalMsg)
                 context.startActivity(intent)
                 return "Sending '$finalMsg' to $nameOrNumber on WhatsApp."
             } catch (e: Exception) {
@@ -326,7 +326,7 @@ class ToolExecutionEngine(private val context: Context) {
         } else {
             // Contact not in address book or not resolved: search & send directly inside WhatsApp
             try {
-                ZoyaAccessibilityService.startWhatsAppSearchAndSend(nameOrNumber, finalMsg)
+                MayaAccessibilityService.startWhatsAppSearchAndSend(nameOrNumber, finalMsg)
 
                 val pm = context.packageManager
                 val launchIntent = pm.getLaunchIntentForPackage("com.whatsapp")
@@ -353,7 +353,7 @@ class ToolExecutionEngine(private val context: Context) {
             val geminiIntent = pm.getLaunchIntentForPackage("com.google.android.apps.bard")
             if (geminiIntent != null) {
                 geminiIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                ZoyaAccessibilityService.startGeminiPromptPaster(finalPrompt)
+                MayaAccessibilityService.startGeminiPromptPaster(finalPrompt)
                 context.startActivity(geminiIntent)
                 return "Opened Gemini with prompt: '$finalPrompt'"
             } else {
@@ -393,7 +393,9 @@ class ToolExecutionEngine(private val context: Context) {
         }
     }
 
-    private fun sendInstagram(usernameOrName: String, message: String): String {
+    fun sendInstagram(usernameOrName: String, message: String): String = sendInstagramMessage(usernameOrName, message)
+
+    fun sendInstagramMessage(usernameOrName: String, message: String): String {
         if (message.isBlank()) {
             return "NEED_MESSAGE: Babu, Instagram par $usernameOrName ko kya message bhejna hai?"
         }
@@ -406,9 +408,9 @@ class ToolExecutionEngine(private val context: Context) {
             val clip = ClipData.newPlainText("Instagram Message", message)
             clipboard.setPrimaryClip(clip)
 
-            ZoyaAccessibilityService.targetInstagramUser = cleanUser
-            ZoyaAccessibilityService.targetInstagramMessage = message
-            ZoyaAccessibilityService.shouldAutoClickInstagram = true
+            MayaAccessibilityService.targetInstagramUser = cleanUser
+            MayaAccessibilityService.targetInstagramMessage = message
+            MayaAccessibilityService.shouldAutoClickInstagram = true
 
             // Open Instagram Direct URL
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ig.me/m/$cleanUser")).apply {
@@ -448,7 +450,7 @@ class ToolExecutionEngine(private val context: Context) {
         }
 
         if (autoClick && trimmedQuery.isNotEmpty()) {
-            ZoyaAccessibilityService.shouldAutoClickYouTube = true
+            MayaAccessibilityService.shouldAutoClickYouTube = true
         }
 
         try {
@@ -651,7 +653,7 @@ class ToolExecutionEngine(private val context: Context) {
     }
 
     private fun openNotificationPanel(): String {
-        val service = ZoyaAccessibilityService.instance
+        val service = MayaAccessibilityService.instance
         return if (service != null && service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)) {
             "Notification panel opened."
         } else {
@@ -683,7 +685,7 @@ class ToolExecutionEngine(private val context: Context) {
     }
 
     private fun takeScreenshot(): String {
-        val service = ZoyaAccessibilityService.instance
+        val service = MayaAccessibilityService.instance
         return if (service != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             val success = service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
             if (success) "Screenshot captured." else "Could not capture screenshot."
@@ -693,17 +695,17 @@ class ToolExecutionEngine(private val context: Context) {
     }
 
     private fun lockScreen(): String {
-        val service = ZoyaAccessibilityService.instance
+        val service = MayaAccessibilityService.instance
         if (service != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             val success = service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
             if (success) return "Screen locked successfully."
         }
 
         // Check if service is enabled in system settings and momentarily re-binding
-        if (ZoyaAccessibilityService.isAccessibilityPermissionGranted(context)) {
+        if (MayaAccessibilityService.isAccessibilityPermissionGranted(context)) {
             for (i in 0 until 5) {
                 try { Thread.sleep(60) } catch (_: Exception) {}
-                val inst = ZoyaAccessibilityService.instance
+                val inst = MayaAccessibilityService.instance
                 if (inst != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                     if (inst.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)) {
                         return "Screen locked successfully."
@@ -713,12 +715,12 @@ class ToolExecutionEngine(private val context: Context) {
         }
 
         // Accessibility service not granted yet: open settings directly so user can enable it with 1 tap
-        ZoyaAccessibilityService.openAccessibilitySettings(context)
+        MayaAccessibilityService.openAccessibilitySettings(context)
         return "Babu, phone lock karne ke liye Accessibility permission zaroori hai. Maine Settings open kar di hai, bas Maya service ko ON kar dijiye!"
     }
 
     private fun openRecentApps(): String {
-        val service = ZoyaAccessibilityService.instance
+        val service = MayaAccessibilityService.instance
         return if (service != null) {
             val success = service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS)
             if (success) "Recent apps opened." else "Could not open recent apps."
@@ -728,7 +730,7 @@ class ToolExecutionEngine(private val context: Context) {
     }
 
     private fun scrollScreen(direction: String): String {
-        val service = ZoyaAccessibilityService.instance
+        val service = MayaAccessibilityService.instance
         return if (service != null) {
             val root = service.rootInActiveWindow
             if (root != null) {

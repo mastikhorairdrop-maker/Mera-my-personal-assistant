@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.BuildConfig
 import com.example.ZoyaForegroundService
-import com.example.accessibility.ZoyaAccessibilityService
+import com.example.accessibility.MayaAccessibilityService
 import com.example.memory.MayaMemoryManager
 import com.example.settings.PersonalityMode
 import com.example.settings.UserSettingsManager
@@ -345,7 +345,7 @@ fun SettingsHubView(
                     onClick = onNavigateToLookAndFeel
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
-                val isAcc = ZoyaAccessibilityService.isServiceRunning()
+                val isAcc = MayaAccessibilityService.isServiceRunning()
                 SettingsListItem(
                     icon = Icons.Default.PhoneAndroid,
                     iconBg = Color(0xFF7E22CE),
@@ -1126,7 +1126,7 @@ fun LookAndFeelScreen(onNavigateBack: () -> Unit) {
 @Composable
 fun PhoneControlScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
-    val isAccessibilityActive = ZoyaAccessibilityService.isAccessibilityPermissionGranted(context)
+    val isAccessibilityActive = MayaAccessibilityService.isAccessibilityPermissionGranted(context)
     val isBatteryExempt = remember { ZoyaForegroundService.isBatteryOptimizationIgnored(context) }
 
     Column(

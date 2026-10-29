@@ -519,6 +519,10 @@ class ZoyaForegroundService : Service() {
         }
     }
 
+    fun triggerVoiceCommand() {
+        wakeWordManager?.triggerSingleRecognitionPass()
+    }
+
     fun stopMayaCompletely() {
         try {
             val prefs = getSharedPreferences("ZoyaPrefs", Context.MODE_PRIVATE)

@@ -47,7 +47,7 @@
             android:foregroundServiceType="microphone" />
 
         <service
-            android:name=".accessibility.ZoyaAccessibilityService"
+            android:name=".accessibility.MayaAccessibilityService"
             android:label="Maya Automation Service"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
