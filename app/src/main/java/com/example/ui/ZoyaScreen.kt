@@ -206,13 +206,28 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     )
                 }
 
-                Text(
-                    text = "Maya",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Maya AI",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Surface(
+                        color = Color(0xFF00E5FF).copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
+                    ) {
+                        Text(
+                            text = "● NEW BUILD v2.0",
+                            color = Color(0xFF00E5FF),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -279,6 +294,52 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // NEW BUILD v2.0 NOTICE BANNER (Assures user they are on the latest APK!)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF160D29)),
+                border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color(0xFFFF007F), Color(0xFF00E5FF))))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🚀", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "NEW UPDATE v2.0 ACTIVE",
+                                color = Color(0xFF00E5FF),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = Color(0xFF10B981),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "100% VIDEO MATCH",
+                                    color = Color.White,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            "Sweet Human Voice • Full Video Features • Auto WhatsApp",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 10.sp
                         )
                     }
                 }

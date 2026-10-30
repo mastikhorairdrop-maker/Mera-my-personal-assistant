@@ -15,8 +15,8 @@ android {
     applicationId = "com.example.fshtqc"
     minSdk = 24
     targetSdk = 35
-    versionCode = 3
-    versionName = "1.2"
+    versionCode = 5
+    versionName = "2.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

@@ -242,7 +242,7 @@ fun SettingsHubView(
             iconTint = Color(0xFFC084FC),
             iconBg = Color(0xFF381A66),
             title = "Maya AI",
-            subtitle = "Your Personal AI Assistant\nv1.6\nMade in India 🇮🇳",
+            subtitle = "Your Personal AI Assistant\nv2.0 (New Video Build)\nMade in India 🇮🇳",
             onClick = onNavigateToPrivacy
         )
 
@@ -1323,7 +1323,7 @@ fun PrivacyAndAboutScreen(onNavigateBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Maya AI Assistant v1.6", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Maya AI Assistant v2.0 (New Video Build)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text("Made in India 🇮🇳", color = Color(0xFFC084FC), fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(

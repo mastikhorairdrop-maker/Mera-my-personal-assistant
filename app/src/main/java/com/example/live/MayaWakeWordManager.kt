@@ -122,7 +122,7 @@ class MayaWakeWordManager(
                 val buffer = ShortArray(1024)
 
                 var consecutiveSpeechFrames = 0
-                val speechThreshold = 1400.0 // RMS threshold for human speech above background
+                val speechThreshold = 480.0 // Responsive RMS threshold for normal speaking volume
 
                 while (!isPaused && isListening && !isRecognizing) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -135,7 +135,6 @@ class MayaWakeWordManager(
 
                         if (rms > speechThreshold) {
                             consecutiveSpeechFrames++
-                            // Need at least 2 consecutive voice frames (~120ms of speech) to trigger
                             if (consecutiveSpeechFrames >= 2) {
                                 Log.i("MayaWakeWord", "Voice detected silently (RMS: $rms)! Launching single recognizer pass...")
                                 consecutiveSpeechFrames = 0
