@@ -307,6 +307,8 @@ class MayaAccessibilityService : AccessibilityService() {
                             val inputNodes = root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/chat_input_text")
                                 .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/input_box") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("Ask Gemini") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByText("Type, talk") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByText("Type a prompt") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("जेमिनी से पूछें") }
 
                             var textInputNode: AccessibilityNodeInfo? = inputNodes.firstOrNull()
@@ -315,6 +317,7 @@ class MayaAccessibilityService : AccessibilityService() {
                             }
 
                             if (textInputNode != null) {
+                                inst.performSafeClick(textInputNode)
                                 val args = Bundle().apply {
                                     putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, prompt)
                                 }
@@ -337,9 +340,18 @@ class MayaAccessibilityService : AccessibilityService() {
                                     }
                                     if (inst.searchAndClickSendButton(activeRoot)) {
                                         shouldPasteGeminiPrompt = false
+                                    } else {
+                                        val sendX = inst.resources.displayMetrics.widthPixels * 0.90f
+                                        val sendY = inst.resources.displayMetrics.heightPixels * 0.92f
+                                        dispatchGestureClick(sendX, sendY)
+                                        shouldPasteGeminiPrompt = false
                                     }
                                 }, 350)
                                 return@postDelayed
+                            } else {
+                                val inputX = inst.resources.displayMetrics.widthPixels * 0.5f
+                                val inputY = inst.resources.displayMetrics.heightPixels * 0.91f
+                                dispatchGestureClick(inputX, inputY)
                             }
                         }
                     } catch (e: Exception) {
@@ -361,13 +373,18 @@ class MayaAccessibilityService : AccessibilityService() {
                         if (root != null) {
                             if (!message.isNullOrBlank()) {
                                 val editBoxes = root.findAccessibilityNodeInfosByViewId("com.instagram.android:id/row_thread_composer_edittext")
-                                for (box in editBoxes) {
-                                    val currentText = box.text?.toString() ?: ""
+                                    .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.instagram.android:id/composer_edittext") }
+                                var boxNode = editBoxes.firstOrNull() ?: findFirstEditableNode(root)
+
+                                if (boxNode != null) {
+                                    inst.performSafeClick(boxNode)
+                                    val currentText = boxNode.text?.toString() ?: ""
                                     if (currentText.isBlank()) {
                                         val args = Bundle().apply {
                                             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, message)
                                         }
-                                        box.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                                        boxNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                                        boxNode.performAction(AccessibilityNodeInfo.ACTION_PASTE)
                                     }
                                 }
                             }

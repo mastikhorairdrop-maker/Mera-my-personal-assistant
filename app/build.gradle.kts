@@ -15,8 +15,8 @@ android {
     applicationId = "com.example.fshtqc"
     minSdk = 24
     targetSdk = 35
-    versionCode = 5
-    versionName = "2.0"
+    versionCode = 6
+    versionName = "2.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -102,6 +102,7 @@ dependencies {
   // implementation(libs.play.services.location)
   implementation(libs.retrofit)
   implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+  implementation("ai.picovoice:porcupine-android:3.0.2")
 
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

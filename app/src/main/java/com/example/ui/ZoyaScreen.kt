@@ -220,7 +220,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.0",
+                            text = "● NEW BUILD v2.1 (OK Maya)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -317,7 +317,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.0 ACTIVE",
+                                "NEW UPDATE v2.1 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -328,7 +328,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "100% VIDEO MATCH",
+                                    "OFFLINE 'OK MAYA' ENGINE",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -337,7 +337,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Sweet Human Voice • Full Video Features • Auto WhatsApp",
+                            "Picovoice Engine • Zero Tring Sound • Auto WhatsApp & Gemini",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )

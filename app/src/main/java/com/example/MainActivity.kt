@@ -90,6 +90,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun checkBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+                if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                Log.w("MayaDiagnostic", "Could not request ignore battery optimization: ${e.message}")
+            }
+        }
+    }
+
     private fun checkOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             try {
@@ -102,5 +118,6 @@ class MainActivity : ComponentActivity() {
                 Log.w("MayaDiagnostic", "Could not launch overlay settings: ${e.message}")
             }
         }
+        checkBatteryOptimization()
     }
 }

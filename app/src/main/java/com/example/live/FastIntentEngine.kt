@@ -371,6 +371,11 @@ class FastIntentEngine(
         MayaSpeaker.speak(reply, flush = true) {
             onStateChange(ZoyaState.IDLE)
             onDone?.invoke()
+            ZoyaForegroundService.activeService?.let { service ->
+                if (!ZoyaForegroundService.isSleeping) {
+                    service.wakeWordManager?.resumeListening()
+                }
+            }
         }
     }
 
@@ -380,33 +385,43 @@ class FastIntentEngine(
             .replace(Regex("(?i)(mere phone ka|phone ka|kholo aur|kholo|open|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|खोलो)"), " ")
             .trim()
 
-        // Match well-known contacts first for 100% precision
+        // Match well-known contacts first for high precision
         val knownMap = mapOf(
             "ritesh vishwakarma" to "Ritesh Vishwakarma",
             "रितेश विश्वकर्मा" to "Ritesh Vishwakarma",
-            "ritesh" to "Ritesh Vishwakarma",
-            "रितेश" to "Ritesh Vishwakarma",
-            "vikas sharma" to "विकास शर्मा",
-            "विकास शर्मा" to "विकास शर्मा",
-            "vikas" to "विकास शर्मा",
-            "विकास" to "विकास शर्मा",
-            "amit" to "अमित",
-            "अमित" to "अमित",
-            "rahul" to "राहुल",
-            "राहुल" to "राहुल",
-            "rajan" to "राजन",
-            "राजन" to "राजन",
-            "sanjay" to "संजय",
-            "संजय" to "संजय",
-            "papa" to "पापा",
-            "पापा" to "पापा",
-            "mummy" to "मम्मी",
-            "मम्मी" to "मम्मी"
+            "ritesh" to "Ritesh",
+            "रितेश" to "Ritesh",
+            "vikas sharma" to "Vikas Sharma",
+            "विकास शर्मा" to "Vikas Sharma",
+            "vikas" to "Vikas",
+            "विकास" to "Vikas",
+            "amit" to "Amit",
+            "अमित" to "Amit",
+            "rahul" to "Rahul",
+            "राहुल" to "Rahul",
+            "rajan" to "Rajan",
+            "राजन" to "Rajan",
+            "sanjay" to "Sanjay",
+            "संजय" to "Sanjay",
+            "papa" to "Papa",
+            "पापा" to "Papa",
+            "mummy" to "Mummy",
+            "मम्मी" to "Mummy"
         )
 
         for ((key, resolvedName) in knownMap) {
             if (clean.contains(key, ignoreCase = true)) {
-                val msg = if (clean.contains("हाय") || clean.contains("hi", ignoreCase = true)) "हाय" else "नमस्ते"
+                // Check if user specified a custom message
+                val afterContact = clean.substringAfter(key).trim()
+                var customMsg = afterContact
+                    .replace(Regex("(?i)(ko|को|ke paas|के पास|par|pe|me|पर|whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), " ")
+                    .replace(Regex("(?i)(likhkar send karo|likh kar send karo|likhkar bhejo|send karo|send kar do|bhejo|bhej do|सेंड करो|सेंड कर दो|भेजो|भेज दो|मैसेज करो|मैसेज भेज दो)"), " ")
+                    .trim()
+                    .replace(Regex("\\s+"), " ")
+
+                val msg = if (customMsg.isNotBlank() && customMsg.length > 1) customMsg
+                          else if (clean.contains("हाय") || clean.contains("hi", ignoreCase = true)) "हाय"
+                          else "नमस्ते"
                 return Pair(resolvedName, msg)
             }
         }

@@ -412,6 +412,9 @@ fun VoiceAndLanguageScreen(onNavigateBack: () -> Unit) {
     var showVoiceDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showResponseStyleDialog by remember { mutableStateOf(false) }
+    var showPicovoiceDialog by remember { mutableStateOf(false) }
+    var picovoiceKey by remember { mutableStateOf(UserSettingsManager.getPicoVoiceAccessKey(context)) }
+    var picovoiceKeywordFile by remember { mutableStateOf(UserSettingsManager.getPicoVoiceKeywordFile(context)) }
 
     Column(
         modifier = Modifier
@@ -719,10 +722,171 @@ fun VoiceAndLanguageScreen(onNavigateBack: () -> Unit) {
                         )
                     )
                 }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+
+                // Picovoice Porcupine Offline Engine Setup
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showPicovoiceDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color(0xFF2563EB), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("🎙️", fontSize = 20.sp)
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Offline 'OK Maya' Engine", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = if (picovoiceKey.isNotBlank()) Color(0xFF10B981) else Color(0xFF38BDF8),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = if (picovoiceKey.isNotBlank()) "PICOVOICE READY" else "SILENT ACOUSTIC",
+                                        color = Color.Black,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = if (picovoiceKey.isNotBlank()) "Picovoice Porcupine active • 0% tring sound" else "Built-in silent acoustic detector active • Zero earcons",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(26.dp))
+    }
+
+    // DIALOG: PICOVOICE PORCUPINE SETUP (Offline "OK Maya" wake-word engine)
+    if (showPicovoiceDialog) {
+        var tempKey by remember { mutableStateOf(picovoiceKey) }
+        var tempFile by remember { mutableStateOf(picovoiceKeywordFile) }
+        AlertDialog(
+            onDismissRequest = { showPicovoiceDialog = false },
+            containerColor = Color(0xFF131126),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎙️", fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Offline 'OK Maya' Setup", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Surface(
+                        color = Color(0xFF0F766E).copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, Color(0xFF2DD4BF).copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = "✅ 0% ट्रिलिंग आवाज • 0% बैटरी खर्च • 100% ऑफलाइन\nअब 'OK Maya' बैकग्राउंड में बिना किसी बीप या डिस्टर्बेंस के काम करता है।",
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        "Picovoice AccessKey (Optional / Free):",
+                        color = Color(0xFFC084FC),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = tempKey,
+                        onValueChange = { tempKey = it },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF38BDF8),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                        ),
+                        placeholder = { Text("Picovoice console AccessKey...", color = Color.Gray, fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "Keyword Model File:",
+                        color = Color(0xFFC084FC),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = tempFile,
+                        onValueChange = { tempFile = it },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF38BDF8),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f)
+                        ),
+                        placeholder = { Text("e.g. ok_maya_android.ppn", color = Color.Gray, fontSize = 12.sp) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "💡 नोट: यदि आप AccessKey नहीं डालते हैं, तो भी माया का 'साइलेंट एकॉस्टिक डिटेक्टर' बिना ट्रिलिंग बीप के काम करेगा।",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        picovoiceKey = tempKey.trim()
+                        picovoiceKeywordFile = tempFile.trim()
+                        UserSettingsManager.setPicoVoiceAccessKey(context, picovoiceKey)
+                        UserSettingsManager.setPicoVoiceKeywordFile(context, picovoiceKeywordFile)
+                        showPicovoiceDialog = false
+                        Toast.makeText(context, "सेटिंग्स सेव हो गईं! 'OK Maya' एक्टिव है ❤️", Toast.LENGTH_SHORT).show()
+                        ZoyaForegroundService.activeService?.wakeWordManager?.let { manager ->
+                            manager.pauseListening()
+                            manager.resumeListening()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8))
+                ) {
+                    Text("सेव करें (Save)", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPicovoiceDialog = false }) {
+                    Text("रद्द करें", color = Color.Gray)
+                }
+            }
+        )
     }
 
     // DIALOG: EDIT YOUR NAME (Solves the yadav bug 100%)

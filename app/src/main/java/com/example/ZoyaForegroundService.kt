@@ -50,7 +50,7 @@ class ZoyaForegroundService : Service() {
     lateinit var liveSessionManager: LiveSessionManager
     private lateinit var toolEngine: ToolExecutionEngine
     lateinit var fastIntentEngine: com.example.live.FastIntentEngine
-    private var wakeWordManager: MayaWakeWordManager? = null
+    var wakeWordManager: MayaWakeWordManager? = null
 
     // WakeLock to prevent the CPU from entering deep sleep and stopping background listening
     private var wakeLock: PowerManager.WakeLock? = null
@@ -189,10 +189,10 @@ class ZoyaForegroundService : Service() {
                         }
                     }
 
-                    // Coordinate wake word manager: only pause when Maya is speaking so she doesn't hear herself
+                    // Coordinate wake word manager: only pause when Maya is speaking or active with command
                     if (state == ZoyaState.SPEAKING) {
                         wakeWordManager?.pauseListening()
-                    } else {
+                    } else if (state == ZoyaState.IDLE && !isSleeping) {
                         wakeWordManager?.resumeListening()
                     }
                 }
@@ -257,24 +257,12 @@ class ZoyaForegroundService : Service() {
                     .replace(Regex("(?i)^(ok|okay|hey|hello|hi|ओए|सुनो)?\\s*(maya|माया|zoya|जोया|joya)\\s*"), "")
                     .trim()
 
-                // Check fast intent locally FIRST (< 15ms instant execution without network lag!)
-                val handled = (cleanCommand.isNotEmpty() && fastIntentEngine.processFastIntent(cleanCommand)) ||
-                              fastIntentEngine.processFastIntent(heardPhrase)
-                if (handled) {
-                    Log.i("MayaService", "Command executed INSTANTLY locally!")
-                    return@MayaWakeWordManager
-                }
-
                 if (wasSleeping) {
                     wakeUp()
-                } else if (currentState == ZoyaState.IDLE) {
-                    liveSessionManager.startSession()
                 }
 
                 if (cleanCommand.isNotEmpty()) {
-                    liveSessionManager.sendTextMessage(cleanCommand)
-                } else if (wasSleeping) {
-                    fastIntentEngine.processFastIntent("kaise ho")
+                    handleUserCommand(cleanCommand)
                 } else {
                     // Instant sweet response locally without server lag!
                     val userName = com.example.settings.UserSettingsManager.getUserName(this)
@@ -286,11 +274,46 @@ class ZoyaForegroundService : Service() {
                     com.example.live.MayaSpeaker.speak(sweetReply) {
                         currentState = ZoyaState.LISTENING
                         onStateChange?.invoke(ZoyaState.LISTENING)
+                        // Trigger single-pass command recognition for the user's command
+                        wakeWordManager?.startCommandRecognition { userCommand ->
+                            handleUserCommand(userCommand)
+                        }
                     }
                 }
             }
             wakeWordManager?.startListening()
         }
+    }
+
+    fun handleUserCommand(command: String) {
+        if (command.isBlank()) {
+            currentState = ZoyaState.IDLE
+            onStateChange?.invoke(ZoyaState.IDLE)
+            wakeWordManager?.resumeListening()
+            return
+        }
+
+        val clean = command
+            .replace(Regex("(?i)^(ok|okay|hey|hello|hi|ओए|सुनो)?\\s*(maya|माया|zoya|जोया|joya)\\s*"), "")
+            .trim()
+        val textToProcess = if (clean.isNotEmpty()) clean else command
+
+        liveSessionManager.addMessage("You: $textToProcess")
+        currentState = ZoyaState.THINKING
+        onStateChange?.invoke(ZoyaState.THINKING)
+
+        val handled = fastIntentEngine.processFastIntent(textToProcess) ||
+                      fastIntentEngine.processFastIntent(command)
+        if (handled) {
+            Log.i("MayaService", "Command '$textToProcess' handled instantly by FastIntentEngine!")
+            return
+        }
+
+        // Forward to Gemini Live Session
+        if (currentState == ZoyaState.IDLE) {
+            liveSessionManager.startSession()
+        }
+        liveSessionManager.sendTextMessage(textToProcess)
     }
 
     private fun triggerHapticFeedback() {
@@ -520,7 +543,16 @@ class ZoyaForegroundService : Service() {
     }
 
     fun triggerVoiceCommand() {
-        wakeWordManager?.triggerSingleRecognitionPass()
+        if (isSleeping) {
+            wakeUp()
+        }
+        wakeWordManager?.releaseMic()
+        currentState = ZoyaState.LISTENING
+        onStateChange?.invoke(ZoyaState.LISTENING)
+        triggerHapticFeedback()
+        wakeWordManager?.startCommandRecognition { userCommand ->
+            handleUserCommand(userCommand)
+        }
     }
 
     fun stopMayaCompletely() {

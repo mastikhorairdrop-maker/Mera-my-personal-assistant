@@ -87,6 +87,8 @@ object UserSettingsManager {
     private const val KEY_LISTEN_ON_OPEN = "listen_on_open"
     private const val KEY_WAKE_WORD_ENABLED = "wake_word_enabled"
     private const val KEY_EDGE_LIGHT_ENABLED = "edge_light_enabled"
+    private const val KEY_PICOVOICE_ACCESS_KEY = "picovoice_access_key"
+    private const val KEY_PICOVOICE_KEYWORD_FILE = "picovoice_keyword_file"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -226,5 +228,21 @@ object UserSettingsManager {
 
     fun setEdgeLightEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_EDGE_LIGHT_ENABLED, enabled).apply()
+    }
+
+    fun getPicoVoiceAccessKey(context: Context): String {
+        return getPrefs(context).getString(KEY_PICOVOICE_ACCESS_KEY, "") ?: ""
+    }
+
+    fun setPicoVoiceAccessKey(context: Context, accessKey: String) {
+        getPrefs(context).edit().putString(KEY_PICOVOICE_ACCESS_KEY, accessKey.trim()).apply()
+    }
+
+    fun getPicoVoiceKeywordFile(context: Context): String {
+        return getPrefs(context).getString(KEY_PICOVOICE_KEYWORD_FILE, "ok_maya_android.ppn") ?: "ok_maya_android.ppn"
+    }
+
+    fun setPicoVoiceKeywordFile(context: Context, path: String) {
+        getPrefs(context).edit().putString(KEY_PICOVOICE_KEYWORD_FILE, path.trim()).apply()
     }
 }
