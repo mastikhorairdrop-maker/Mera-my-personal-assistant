@@ -382,7 +382,7 @@ class FastIntentEngine(
     private fun extractWhatsAppTarget(query: String, rawText: String): Pair<String, String>? {
         val clean = rawText
             .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
-            .replace(Regex("(?i)(mere phone ka|phone ka|kholo aur|kholo|open|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|खोलो)"), " ")
+            .replace(Regex("(?i)(whatsapp kholo aur|whatsapp open karo aur|whatsapp kholo|whatsapp open karo|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|mere phone ka|phone ka|kholo aur|kholo|open karo aur|open karo|open|खोलो और|खोलो)"), " ")
             .trim()
 
         // Match well-known contacts first for high precision

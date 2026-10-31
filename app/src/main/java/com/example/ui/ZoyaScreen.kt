@@ -317,7 +317,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.1 ACTIVE",
+                                "NEW UPDATE v2.2 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -328,7 +328,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "OFFLINE 'OK MAYA' ENGINE",
+                                    "SWEET NATURAL VOICE & SMART ACTIONS",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -337,7 +337,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Picovoice Engine • Zero Tring Sound • Auto WhatsApp & Gemini",
+                            "Sweet Natural Voice • Instant WhatsApp • Smart Screen Lock",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )
@@ -410,7 +410,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 ContextCompat.startForegroundService(context, intent)
                                 serviceStarted = true
                             } else {
-                                ZoyaForegroundService.activeService?.reconnectSession()
+                                ZoyaForegroundService.activeService?.triggerVoiceCommand()
                             }
                         } else {
                             permissionLauncher.launch(
@@ -848,7 +848,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 ContextCompat.startForegroundService(context, intent)
                                 serviceStarted = true
                             } else {
-                                ZoyaForegroundService.activeService?.reconnectSession()
+                                ZoyaForegroundService.activeService?.triggerVoiceCommand()
                             }
                         },
                     contentAlignment = Alignment.Center

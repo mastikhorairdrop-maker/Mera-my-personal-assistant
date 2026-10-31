@@ -346,9 +346,21 @@ class MayaWakeWordManager(
                         }
 
                         override fun onResults(results: Bundle?) {
-                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                            val best = matches?.firstOrNull()?.trim() ?: ""
-                            Log.i(TAG, "Command recognized: '$best'")
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: arrayListOf()
+                            Log.d(TAG, "SpeechRecognizer candidates: $matches")
+                            val best = matches.firstOrNull { candidate ->
+                                val lower = candidate.lowercase()
+                                lower.contains("whatsapp") || lower.contains("व्हाट्सएप") ||
+                                lower.contains("vikas") || lower.contains("विकास") ||
+                                lower.contains("lock") || lower.contains("लॉक") ||
+                                lower.contains("torch") || lower.contains("फ्लैश") ||
+                                lower.contains("gana") || lower.contains("गाना") ||
+                                lower.contains("gemini") || lower.contains("जेमिनी") ||
+                                lower.contains("instagram") || lower.contains("इंस्टाग्राम") ||
+                                lower.contains("open") || lower.contains("kholo") || lower.contains("खोलो")
+                            } ?: matches.firstOrNull()?.trim() ?: ""
+
+                            Log.i(TAG, "Selected best recognized command: '$best'")
                             finishCommandPass(best)
                         }
 
@@ -370,10 +382,13 @@ class MayaWakeWordManager(
 
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN")
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "hi-IN")
+                    putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
                     putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2500L)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1800L)
                 }
 
                 commandSpeechRecognizer?.startListening(intent)

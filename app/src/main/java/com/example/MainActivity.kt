@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.i("MayaDiagnostic", "MainActivity onCreate started")
+        com.example.live.MayaSpeaker.init(this)
         com.example.memory.MayaMemoryManager.init(this)
 
         checkPermissions()

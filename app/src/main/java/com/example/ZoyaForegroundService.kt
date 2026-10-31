@@ -96,6 +96,7 @@ class ZoyaForegroundService : Service() {
         super.onCreate()
         try {
             activeService = this
+            com.example.live.MayaSpeaker.init(this)
             toolEngine = ToolExecutionEngine(this)
 
             fastIntentEngine = com.example.live.FastIntentEngine(
@@ -266,14 +267,16 @@ class ZoyaForegroundService : Service() {
                 } else {
                     // Instant sweet response locally without server lag!
                     val userName = com.example.settings.UserSettingsManager.getUserName(this)
-                    val sweetReply = "हाँ $userName बोलो, मैं सुन रही हूँ! ❤️"
+                    val sweetReply = "हाँ $userName, बोलो!"
                     liveSessionManager.addMessage("You: Ok Maya")
                     liveSessionManager.addMessage("Maya: $sweetReply")
                     currentState = ZoyaState.SPEAKING
                     onStateChange?.invoke(ZoyaState.SPEAKING)
-                    com.example.live.MayaSpeaker.speak(sweetReply) {
+                    FloatingMayaOverlayManager.updateState(ZoyaState.SPEAKING)
+                    com.example.live.MayaSpeaker.speak(sweetReply, flush = true) {
                         currentState = ZoyaState.LISTENING
                         onStateChange?.invoke(ZoyaState.LISTENING)
+                        FloatingMayaOverlayManager.updateState(ZoyaState.LISTENING)
                         // Trigger single-pass command recognition for the user's command
                         wakeWordManager?.startCommandRecognition { userCommand ->
                             handleUserCommand(userCommand)
@@ -536,6 +539,8 @@ class ZoyaForegroundService : Service() {
             liveSessionManager.startSession()
             FloatingMayaOverlayManager.updateState(ZoyaState.LISTENING)
             updateNotification("Maya is listening for 'Ok Maya'...")
+            val userName = com.example.settings.UserSettingsManager.getUserName(this)
+            com.example.live.MayaSpeaker.speak("माया जाग गई $userName!")
             Log.i("MayaService", "Maya has AWOKEN from sleep mode!")
         } catch (e: Exception) {
             Log.e("MayaService", "Error waking up Maya", e)
@@ -549,6 +554,7 @@ class ZoyaForegroundService : Service() {
         wakeWordManager?.releaseMic()
         currentState = ZoyaState.LISTENING
         onStateChange?.invoke(ZoyaState.LISTENING)
+        FloatingMayaOverlayManager.updateState(ZoyaState.LISTENING)
         triggerHapticFeedback()
         wakeWordManager?.startCommandRecognition { userCommand ->
             handleUserCommand(userCommand)
