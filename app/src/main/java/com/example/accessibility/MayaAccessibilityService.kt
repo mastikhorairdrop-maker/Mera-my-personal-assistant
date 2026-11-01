@@ -80,6 +80,60 @@ class MayaAccessibilityService : AccessibilityService() {
             return false
         }
 
+        fun unlockScreenDirectly(context: android.content.Context, pin: String? = null): Boolean {
+            val inst = instance
+            try {
+                // 1. Wake up the display
+                val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+                if (pm != null && !pm.isInteractive) {
+                    @Suppress("DEPRECATION")
+                    val wakeLock = pm.newWakeLock(
+                        android.os.PowerManager.FULL_WAKE_LOCK or
+                                android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP or
+                                android.os.PowerManager.ON_AFTER_RELEASE,
+                        "Maya:VoiceUnlock"
+                    )
+                    wakeLock.acquire(4000L)
+                }
+
+                // 2. Dismiss Keyguard swipe lock
+                val km = context.getSystemService(android.content.Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && context is android.app.Activity) {
+                    km?.requestDismissKeyguard(context, null)
+                }
+
+                // 3. Perform swipe-up gesture on lockscreen
+                if (inst != null) {
+                    val dm = context.resources.displayMetrics
+                    val width = dm.widthPixels.toFloat()
+                    val height = dm.heightPixels.toFloat()
+                    val swipePath = Path().apply {
+                        moveTo(width / 2f, height * 0.85f)
+                        lineTo(width / 2f, height * 0.18f)
+                    }
+                    val gesture = GestureDescription.Builder()
+                        .addStroke(GestureDescription.StrokeDescription(swipePath, 50, 320))
+                        .build()
+                    inst.dispatchGesture(gesture, object : AccessibilityService.GestureResultCallback() {
+                        override fun onCompleted(gestureDescription: GestureDescription?) {
+                            super.onCompleted(gestureDescription)
+                            if (!pin.isNullOrBlank()) {
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    for (char in pin) {
+                                        clickTextOnScreen(char.toString())
+                                    }
+                                }, 350L)
+                            }
+                        }
+                    }, null)
+                }
+                return true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in unlockScreenDirectly", e)
+                return false
+            }
+        }
+
         fun dispatchGestureClick(x: Float, y: Float): Boolean {
             val inst = instance ?: return false
             if (x <= 0f || y <= 0f) return false

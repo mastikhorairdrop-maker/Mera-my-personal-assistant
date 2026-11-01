@@ -176,6 +176,20 @@ class ToolExecutionEngine(private val context: Context) {
                     com.example.ui.EdgeLightOverlayManager.saveMode(context, targetMode)
                     "Babu maine screen edge light settings update kar di hai!"
                 }
+                "unlockScreen" -> {
+                    val pin = args["pin"]?.jsonPrimitive?.content ?: com.example.settings.UserSettingsManager.getAutoUnlockPin(context)
+                    val success = MayaAccessibilityService.unlockScreenDirectly(context, pin)
+                    if (success) "Screen unlocked successfully." else "Failed to unlock screen."
+                }
+                "enableTouchGuard" -> {
+                    val armMotion = args["armMotion"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true
+                    com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotion)
+                    "Touch guard mode activated."
+                }
+                "disableTouchGuard" -> {
+                    com.example.guard.TouchGuardManager.disableTouchGuard(context)
+                    "Touch guard mode deactivated."
+                }
                 else -> "Error: Tool $name not found."
             }
         } catch (e: Exception) {

@@ -120,6 +120,8 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
     var queryInput by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showHeartEmoji by remember { mutableStateOf(false) }
+    var isTouchGuardActive by remember { mutableStateOf(com.example.guard.TouchGuardManager.isTouchGuardActive) }
+    var isMotionAlarmArmed by remember { mutableStateOf(com.example.guard.TouchGuardManager.isMotionAlarmArmed) }
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
@@ -220,7 +222,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.3 (Boss Voice & Sweet AI)",
+                            text = "● NEW BUILD v2.4 (Touch Guard & Auto Unlock)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -317,7 +319,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.3 ACTIVE",
+                                "NEW UPDATE v2.4 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -328,7 +330,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "BOSS VOICE & SWEET NATURAL AI",
+                                    "TOUCH GUARD & AUTO UNLOCK",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -337,7 +339,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Sweet Voice • Boss Recognition • Direct WhatsApp • Gemini Image • YouTube Play",
+                            "Touch Guard Mode • Auto Screen Unlock • Anti-Theft Siren • Sweet Voice",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )
@@ -712,6 +714,123 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         fontSize = 9.sp,
                         lineHeight = 12.sp
                     )
+                }
+            }
+
+            // TOUCH GUARD & AUTO UNLOCK CARD (टच गार्ड • स्क्रीन अनलॉक • एंटी-थेफ्ट)
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("touch_guard_unlock_card"),
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF161824),
+                border = BorderStroke(1.dp, Brush.horizontalGradient(listOf(Color(0xFF00E5FF).copy(alpha = 0.5f), Color(0xFFFF007F).copy(alpha = 0.5f))))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🛡️", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "टच गार्ड व ऑटो अनलॉक मोड",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    "Pocket Protection & Voice Unlock",
+                                    color = Color(0xFF00E5FF),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+
+                        // Toggle Touch Guard
+                        Button(
+                            onClick = {
+                                isTouchGuardActive = !isTouchGuardActive
+                                if (isTouchGuardActive) {
+                                    com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotionAlarm = true)
+                                    isMotionAlarmArmed = true
+                                    Toast.makeText(context, "🛡️ टच गार्ड ऑन! स्क्रीन और मोशन सुरक्षित", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    com.example.guard.TouchGuardManager.disableTouchGuard(context)
+                                    isMotionAlarmArmed = false
+                                    Toast.makeText(context, "टच गार्ड बंद कर दिया गया", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isTouchGuardActive) Color(0xFF00E676) else Color(0xFF2A2D3E)
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (isTouchGuardActive) "सुरक्षित (ON) ✓" else "चालू करें",
+                                color = if (isTouchGuardActive) Color.Black else Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Quick Unlock Button
+                        OutlinedButton(
+                            onClick = {
+                                val pin = com.example.settings.UserSettingsManager.getAutoUnlockPin(context)
+                                val success = com.example.accessibility.MayaAccessibilityService.unlockScreenDirectly(context, pin)
+                                if (success) {
+                                    Toast.makeText(context, "🔓 स्क्रीन अनलॉक ट्रिगर हुआ!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "कृपया पहले Accessibility चालू करें", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f)),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                "🔓 अनलॉक टेस्ट",
+                                color = Color(0xFF00E5FF),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Voice Prompt hint
+                        Surface(
+                            modifier = Modifier.weight(1.3f),
+                            color = Color(0xFF0D1117),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                Text(
+                                    "🗣️ बोलें: 'Ok Maya फोन खोलो'",
+                                    color = Color(0xFFFFD600),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "या 'टच गार्ड ऑन करो'",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

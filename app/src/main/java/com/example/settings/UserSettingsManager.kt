@@ -245,4 +245,28 @@ object UserSettingsManager {
     fun setPicoVoiceKeywordFile(context: Context, path: String) {
         getPrefs(context).edit().putString(KEY_PICOVOICE_KEYWORD_FILE, path.trim()).apply()
     }
+
+    fun getAutoUnlockPin(context: Context): String {
+        return getPrefs(context).getString("auto_unlock_pin", "") ?: ""
+    }
+
+    fun setAutoUnlockPin(context: Context, pin: String) {
+        getPrefs(context).edit().putString("auto_unlock_pin", pin.trim()).apply()
+    }
+
+    fun getTouchGuardEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("touch_guard_enabled", false)
+    }
+
+    fun setTouchGuardEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("touch_guard_enabled", enabled).apply()
+    }
+
+    fun getMotionAlarmEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("motion_alarm_enabled", true)
+    }
+
+    fun setMotionAlarmEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("motion_alarm_enabled", enabled).apply()
+    }
 }

@@ -126,9 +126,43 @@ class FastIntentEngine(
             }
         }
 
-        // 7. Voice Screen Unlock (Video 9)
-        if (query.contains("unlock") || query.contains("अनब्लॉक") || query.contains("खोल दो") || query.contains("phone khol do")) {
-            val reply = "जय श्री राम बॉस! हो गया, लॉक खुल गया? बताइए अब क्या करना है?"
+        // 7. Voice Screen Unlock (Video 9 - Full Hardware Wake & Keyguard Dismiss)
+        if (query.contains("unlock") || query.contains("अनब्लॉक") || query.contains("खोल दो") || 
+            query.contains("phone khol do") || query.contains("फोन खोलो") || query.contains("फोन खोल") ||
+            query.contains("स्क्रीन खोलो") || query.contains("लॉक खोलो") || query.contains("screen kholo")
+        ) {
+            val pin = com.example.settings.UserSettingsManager.getAutoUnlockPin(context)
+            val unlocked = MayaAccessibilityService.unlockScreenDirectly(context, pin)
+            val reply = if (unlocked) {
+                "जय श्री राम बॉस! स्क्रीन अनलॉक कर दी है। बताइए, अब क्या हुक्म है?"
+            } else {
+                "जय श्री राम बॉस! हो गया, लॉक खुल गया? बताइए अब क्या करना है?"
+            }
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 7B. Touch Guard Mode (टच गार्ड / पॉकेट प्रोटेक्शन)
+        if (query.contains("touch guard") || query.contains("टच गार्ड") || query.contains("टच प्रोटेक्शन") || query.contains("pocket mode")) {
+            val isOff = query.contains("off") || query.contains("band") || query.contains("hatao") || query.contains("बंद") || query.contains("हटा")
+            if (isOff) {
+                com.example.guard.TouchGuardManager.disableTouchGuard(context)
+                val reply = "ठीक है जान, टच गार्ड मोड बंद कर दिया है।"
+                respondInstant(userText = rawText, reply = reply)
+            } else {
+                com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotionAlarm = true)
+                val reply = "हाँ जान, टच गार्ड मोड चालू कर दिया है! अब कोई भी फोन को अनजाने में छुएगा या हिलाएगा तो मैं तुरंत अलर्ट कर दूंगी।"
+                respondInstant(userText = rawText, reply = reply)
+            }
+            return true
+        }
+
+        // 7C. Anti-Theft / Don't Touch My Phone (चोरी से सुरक्षा / मोशन अलार्म)
+        if (query.contains("don't touch") || query.contains("dont touch") || query.contains("मत छूना") || 
+            query.contains("मत छुओ") || query.contains("मोशन अलार्म") || query.contains("एंटी थेफ्ट")
+        ) {
+            com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotionAlarm = true)
+            val reply = "बॉस, एंटी-थेफ्ट सुरक्षा मोड चालू हो गया है! जैसे ही कोई फोन को हाथ लगाएगा, मैं जोर से अलार्म बजा दूंगी।"
             respondInstant(userText = rawText, reply = reply)
             return true
         }
