@@ -72,7 +72,7 @@ jobs:
           echo "debug.keystore verified successfully."
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+        run: gradle :app:assembleDebug --stacktrace --no-daemon -Djava.awt.headless=true
 
       - name: Verify generated APK
         run: |

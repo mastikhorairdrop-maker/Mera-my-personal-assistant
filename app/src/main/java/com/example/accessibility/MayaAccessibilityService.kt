@@ -150,47 +150,55 @@ class MayaAccessibilityService : AccessibilityService() {
         }
 
         private fun scheduleWhatsAppSendRetry(attempt: Int) {
-            if (!shouldAutoClickWhatsApp || attempt > 30) return
+            if (!shouldAutoClickWhatsApp || attempt > 35) return
             mainHandler.postDelayed({
                 val inst = instance
                 if (inst != null && shouldAutoClickWhatsApp) {
                     try {
                         val root = inst.rootInActiveWindow
                         if (root != null) {
-                            // 1. Ensure text is in the message entry box
-                            val msg = targetWhatsAppMessage
-                            if (!msg.isNullOrBlank()) {
-                                val entryBoxes = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry")
-                                    .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/entry") }
-                                for (box in entryBoxes) {
-                                    val currentText = box.text?.toString() ?: ""
-                                    if (currentText.isBlank()) {
-                                        val args = Bundle().apply {
-                                            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, msg)
-                                        }
-                                        box.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                            val msg = targetWhatsAppMessage ?: "हाय"
+                            val entryBoxes = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry")
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/entry") }
+                            
+                            var textReady = false
+                            for (box in entryBoxes) {
+                                val currentText = box.text?.toString() ?: ""
+                                if (currentText.isBlank()) {
+                                    val args = Bundle().apply {
+                                        putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, msg)
                                     }
+                                    box.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                                    box.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+                                    textReady = true
+                                } else {
+                                    textReady = true
                                 }
                             }
 
-                            // 2. Click Send Button
+                            // Once text is entered, search and click Send button
                             var clicked = inst.searchAndClickSendButton(root)
-                            if (!clicked) {
-                                val entryBoxes = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry")
-                                    .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/entry") }
-                                if (entryBoxes.isNotEmpty()) {
-                                    val bounds = Rect()
-                                    entryBoxes[0].getBoundsInScreen(bounds)
-                                    val sendX = inst.resources.displayMetrics.widthPixels * 0.92f
-                                    val sendY = bounds.centerY().toFloat()
-                                    if (sendX > 0 && sendY > 0) {
-                                        clicked = dispatchGestureClick(sendX, sendY)
-                                    }
+                            if (!clicked && entryBoxes.isNotEmpty()) {
+                                val bounds = Rect()
+                                entryBoxes[0].getBoundsInScreen(bounds)
+                                val sendX = inst.resources.displayMetrics.widthPixels * 0.92f
+                                val sendY = bounds.centerY().toFloat()
+                                if (sendX > 0 && sendY > 0) {
+                                    clicked = dispatchGestureClick(sendX, sendY)
                                 }
                             }
+
                             if (clicked) {
                                 Log.d(TAG, "WhatsApp send button clicked on retry attempt $attempt")
-                                shouldAutoClickWhatsApp = false
+                                mainHandler.postDelayed({
+                                    val activeRoot = inst.rootInActiveWindow
+                                    val currentBoxes = activeRoot?.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry") ?: emptyList()
+                                    if (currentBoxes.isEmpty() || currentBoxes[0].text?.toString().isNullOrBlank()) {
+                                        shouldAutoClickWhatsApp = false
+                                    } else {
+                                        scheduleWhatsAppSendRetry(attempt + 1)
+                                    }
+                                }, 350)
                                 return@postDelayed
                             }
                         }
@@ -203,30 +211,41 @@ class MayaAccessibilityService : AccessibilityService() {
         }
 
         private fun scheduleWhatsAppSearchRetry(attempt: Int) {
-            if (!shouldSearchAndSendWhatsApp || attempt > 30) return
+            if (!shouldSearchAndSendWhatsApp || attempt > 35) return
             mainHandler.postDelayed({
                 val inst = instance
                 if (inst != null && shouldSearchAndSendWhatsApp) {
                     try {
                         val root = inst.rootInActiveWindow
                         val contact = targetWhatsAppContact
-                        val message = targetWhatsAppMessage ?: ""
+                        val message = targetWhatsAppMessage ?: "हाय"
 
                         if (root != null && !contact.isNullOrBlank()) {
-                            // Step 1: Check if contact is directly visible in active chats
-                            val directNodes = root.findAccessibilityNodeInfosByText(contact)
-                            val validChatNode = directNodes.firstOrNull { node ->
-                                val text = node.text?.toString() ?: ""
-                                val desc = node.contentDescription?.toString() ?: ""
-                                text.contains(contact, ignoreCase = true) || desc.contains(contact, ignoreCase = true)
+                            // Step 1: Check if contact or first name is directly visible in active chats (e.g. 'विकास शर्मा' or 'विकास')
+                            val contactVariations = mutableListOf(contact)
+                            if (contact.contains(" ")) {
+                                contactVariations.add(contact.split(" ").first())
+                            }
+                            if (contact.equals("विकास शर्मा", ignoreCase = true) || contact.equals("Vikas Sharma", ignoreCase = true)) {
+                                contactVariations.addAll(listOf("विकास शर्मा", "विकास", "Vikas Sharma", "Vikas"))
+                            } else if (contact.equals("रितेश विश्वकर्मा", ignoreCase = true) || contact.equals("Ritesh Vishwakarma", ignoreCase = true)) {
+                                contactVariations.addAll(listOf("रितेश विश्वकर्मा", "रितेश", "Ritesh Vishwakarma", "Ritesh"))
                             }
 
-                            if (validChatNode != null) {
-                                if (inst.performSafeClick(validChatNode)) {
-                                    Log.d(TAG, "Clicked visible WhatsApp chat '$contact' directly!")
-                                    shouldSearchAndSendWhatsApp = false
-                                    startWhatsAppSendWatcher(message)
-                                    return@postDelayed
+                            for (variant in contactVariations) {
+                                val directNodes = root.findAccessibilityNodeInfosByText(variant)
+                                val validChatNode = directNodes.firstOrNull { node ->
+                                    val text = node.text?.toString() ?: ""
+                                    val desc = node.contentDescription?.toString() ?: ""
+                                    text.contains(variant, ignoreCase = true) || desc.contains(variant, ignoreCase = true)
+                                }
+                                if (validChatNode != null) {
+                                    if (inst.performSafeClick(validChatNode)) {
+                                        Log.d(TAG, "Clicked visible WhatsApp chat '$variant' directly!")
+                                        shouldSearchAndSendWhatsApp = false
+                                        startWhatsAppSendWatcher(message)
+                                        return@postDelayed
+                                    }
                                 }
                             }
 
@@ -296,7 +315,7 @@ class MayaAccessibilityService : AccessibilityService() {
         }
 
         private fun scheduleGeminiPromptRetry(attempt: Int) {
-            if (!shouldPasteGeminiPrompt || attempt > 30) return
+            if (!shouldPasteGeminiPrompt || attempt > 35) return
             mainHandler.postDelayed({
                 val inst = instance
                 val prompt = targetGeminiPrompt
@@ -306,10 +325,12 @@ class MayaAccessibilityService : AccessibilityService() {
                         if (root != null) {
                             val inputNodes = root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/chat_input_text")
                                 .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.google.android.apps.bard:id/input_box") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByText("Gemini से कहें") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("Ask Gemini") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("Type, talk") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("Type a prompt") }
                                 .ifEmpty { root.findAccessibilityNodeInfosByText("जेमिनी से पूछें") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByText("से कहें") }
 
                             var textInputNode: AccessibilityNodeInfo? = inputNodes.firstOrNull()
                             if (textInputNode == null) {
@@ -360,6 +381,43 @@ class MayaAccessibilityService : AccessibilityService() {
                     scheduleGeminiPromptRetry(attempt + 1)
                 }
             }, 300)
+        }
+
+        fun scheduleYouTubeAutoPlayRetry(attempt: Int) {
+            if (!shouldAutoClickYouTube || attempt > 25) return
+            mainHandler.postDelayed({
+                val inst = instance
+                if (inst != null && shouldAutoClickYouTube) {
+                    try {
+                        val root = inst.rootInActiveWindow
+                        if (root != null) {
+                            val thumbnails = root.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/thumbnail")
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/video_info_view") }
+                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.google.android.youtube:id/compact_renderer") }
+
+                            for (thumb in thumbnails) {
+                                if (inst.performSafeClick(thumb)) {
+                                    Log.d(TAG, "Clicked first YouTube video thumbnail to play!")
+                                    shouldAutoClickYouTube = false
+                                    return@postDelayed
+                                }
+                            }
+
+                            // Fallback coordinate click on first search result video
+                            val clickX = inst.resources.displayMetrics.widthPixels * 0.5f
+                            val clickY = inst.resources.displayMetrics.density * 260f
+                            if (dispatchGestureClick(clickX, clickY)) {
+                                Log.d(TAG, "Dispatched physical click on top YouTube video result")
+                                shouldAutoClickYouTube = false
+                                return@postDelayed
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in scheduleYouTubeAutoPlayRetry", e)
+                    }
+                    scheduleYouTubeAutoPlayRetry(attempt + 1)
+                }
+            }, 400)
         }
 
         private fun scheduleInstagramSendRetry(attempt: Int) {

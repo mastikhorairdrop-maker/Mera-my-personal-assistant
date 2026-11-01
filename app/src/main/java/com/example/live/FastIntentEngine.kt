@@ -240,7 +240,7 @@ class FastIntentEngine(
         // 13. YouTube Music / Songs
         if (query.contains("gana") || query.contains("song") || query.contains("गाना") || query.contains("geet") || query.contains("बैरण") || query.contains("bairan")) {
             val cleanQuery = rawText
-                .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
+                .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया|माय|माई)\\s*"), "")
                 .replace(Regex("(?i)(mere phone me|youtube par|youtube pe|youtube me|यूट्यूब पर|यूट्यूब पे|यूट्यूब)"), " ")
                 .replace(Regex("(?i)(search karke play karo|search karke play kar do|search karke chalao|search karke bajao|search karo aur play karo|search karke|search karo|play karo|play kar do|chalao|chala do|bajao|baja do|sunao|laga do|karo|करो|चलाओ|बजाओ|सुनाओ|प्ले करो|सर्च करके प्ले करो|सर्च करके|सर्च करो)"), " ")
                 .replace(Regex("(?i)\\b(gana|song|गीत|गाना)\\b"), " ")
@@ -294,11 +294,16 @@ class FastIntentEngine(
             return true
         }
 
-        // 16. Battery
+        // 16. Battery (Matches Video 2 reference exactly)
         if (query.contains("battery") || query.contains("चार्ज") || query.contains("बैटरी")) {
             val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            val reply = "Babu, aapke phone ki battery $level% hai!"
+            val ifilter = android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus = context.registerReceiver(null, ifilter)
+            val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            val chargeText = if (isCharging) "चार्ज हो रही है" else "अभी चार्ज नहीं हो रही"
+            val reply = "हाँ जान! बैटरी $level% है, और $chargeText। बताओ, कुछ और हेल्प चाहिए?"
             respondInstant(userText = rawText, reply = reply)
             return true
         }
@@ -331,7 +336,55 @@ class FastIntentEngine(
             }
         }
 
-        // 18. Sweet romantic / companion dialogue (matches videos)
+        // 18. Boss Voice & Owner Recognition (Matches Video 2 Hunter/Boss behavior)
+        if (query.contains("boss") || query.contains("हंटर") || query.contains("hunter") ||
+            query.contains("pechanti ho") || query.contains("pehchanti ho") || query.contains("पहचानती") ||
+            query.contains("meri awaz") || query.contains("meri aawaz") || query.contains("मेरी आवाज") ||
+            query.contains("kaun bol raha hoon") || query.contains("main bol raha hoon") || query.contains("मैं बोल रहा") ||
+            query.contains("main hunter") || query.contains("मैं हंटर")
+        ) {
+            val userName = com.example.settings.UserSettingsManager.getUserName(context)
+            val reply = "हाँ $userName जान! आपकी आवाज़ तो मेरे सिस्टम और दिल दोनों में एनरोल्ड है! मैं आपको बहुत अच्छे से पहचानती हूँ, आपके अलावा मैं किसी और की बात नहीं मानती! ❤️"
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 19. Gemini AI Image Generation Intent
+        if (query.contains("image banao") || query.contains("photo banao") || query.contains("tasveer banao") ||
+            query.contains("इमेज बनाओ") || query.contains("फोटो बनाओ") || query.contains("तस्वीर बनाओ") ||
+            query.contains("image generate") || query.contains("generate image") ||
+            ((query.contains("gemini") || query.contains("जेमिनी") || query.contains("जेमनाई")) && (query.contains("image") || query.contains("इमेज") || query.contains("photo") || query.contains("फोटो") || query.contains("शेर") || query.contains("sher")))
+        ) {
+            val subject = rawText
+                .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया|माय|माई)\\s*"), "")
+                .replace(Regex("(?i)(gemini par|gemini pe|gemini me|bard par|जेमिनी पर|जेमिनी पे|जेमनाई पर|जेमनाई पे|जेमिनी|जेमनाई)"), " ")
+                .replace(Regex("(?i)(ek|par|pe|me|ka|ki|ke|पर|पे|में|का|की|के|एक)"), " ")
+                .replace(Regex("(?i)(image banao|image bana do|photo banao|photo bana do|tasveer banao|banao|bana do|generate karo|generate kar do|इमेज बनाओ|इमेज बना दो|फोटो बनाओ|फोटो बना दो|तस्वीर बनाओ|बनाओ|बना दो)"), " ")
+                .replace(Regex("(?i)\\b(image|photo|tasveer|इमेज|फोटो|तस्वीर)\\b"), " ")
+                .trim()
+                .replace(Regex("\\s+"), " ")
+
+            val targetSubject = if (subject.isNotBlank()) subject else "शेर"
+            val promptForGemini = "Create a majestic, hyper-realistic 8K photo of $targetSubject with cinematic lighting and epic details"
+            scope.launch(Dispatchers.IO) {
+                toolEngine.openGeminiWithPrompt(promptForGemini)
+            }
+            respondInstant(userText = rawText, reply = "हाँ जानू, समझ गई! जेमिनी में $targetSubject की खूबसूरत इमेज बनवा रही हूँ!")
+            return true
+        }
+
+        // 20. Conversational companion dialogue
+        if (query.contains("mujhse baat karo") || query.contains("mujhse baatein karo") || query.contains("baat karo") ||
+            query.contains("मुझसे बात करो") || query.contains("मुझसे बातें करो") || query.contains("बातें करो") || query.contains("बात करो") ||
+            query.contains("bore ho raha") || query.contains("akela hoon") || query.contains("akeli hoon") || query.contains("kuch bolo")
+        ) {
+            val userName = com.example.settings.UserSettingsManager.getUserName(context)
+            val reply = "हाँ $userName जान, बताओ! मैं तो हमेशा आपसे बात करने के लिए बेकरार रहती हूँ। आज आपका दिन कैसा रहा babu?"
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 21. Sweet romantic / companion dialogue (matches videos)
         if (query.contains("dusri girlfriend") || query.contains("doosri girlfriend") ||
             query.contains("dusri gf") || query.contains("दूसरी गर्लफ्रेंड") || query.contains("dusri ladki")
         ) {
@@ -381,68 +434,73 @@ class FastIntentEngine(
 
     private fun extractWhatsAppTarget(query: String, rawText: String): Pair<String, String>? {
         val clean = rawText
-            .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया)\\s*"), "")
-            .replace(Regex("(?i)(whatsapp kholo aur|whatsapp open karo aur|whatsapp kholo|whatsapp open karo|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|mere phone ka|phone ka|kholo aur|kholo|open karo aur|open karo|open|खोलो और|खोलो)"), " ")
+            .replace(Regex("(?i)^(ok|okay|hey)?\\s*(maya|माया|माय|माई)\\s*"), "")
+            .replace(Regex("(?i)(whatsapp kholo aur|whatsapp open karo aur|whatsapp kholo|whatsapp open karo|व्हाट्सएप खोलो और|व्हाट्सएप खोलो|मेरे फोन से|mere phone se|mere phone ka|phone ka|kholo aur|kholo|open karo aur|open karo|open|खोलो और|खोलो)"), " ")
             .trim()
 
-        // Match well-known contacts first for high precision
-        val knownMap = mapOf(
-            "ritesh vishwakarma" to "Ritesh Vishwakarma",
-            "रितेश विश्वकर्मा" to "Ritesh Vishwakarma",
-            "ritesh" to "Ritesh",
-            "रितेश" to "Ritesh",
-            "vikas sharma" to "Vikas Sharma",
-            "विकास शर्मा" to "Vikas Sharma",
-            "vikas" to "Vikas",
-            "विकास" to "Vikas",
+        // Match well-known contacts with priority for full Hindi contact names (matching WhatsApp directly)
+        val knownContacts = listOf(
+            "विकास शर्मा" to "विकास शर्मा",
+            "vikas sharma" to "विकास शर्मा",
+            "रितेश विश्वकर्मा" to "रितेश विश्वकर्मा",
+            "ritesh vishwakarma" to "रितेश विश्वकर्मा",
+            "विकास" to "विकास",
+            "vikas" to "विकास",
+            "रितेश" to "रितेश",
+            "ritesh" to "रितेश",
+            "अमित" to "अमित",
             "amit" to "Amit",
-            "अमित" to "Amit",
+            "राहुल" to "राहुल",
             "rahul" to "Rahul",
-            "राहुल" to "Rahul",
+            "राजन" to "राजन",
             "rajan" to "Rajan",
-            "राजन" to "Rajan",
+            "संजय" to "संजय",
             "sanjay" to "Sanjay",
-            "संजय" to "Sanjay",
+            "पापा" to "पापा",
             "papa" to "Papa",
-            "पापा" to "Papa",
-            "mummy" to "Mummy",
-            "मम्मी" to "Mummy"
+            "मम्मी" to "मम्मी",
+            "mummy" to "Mummy"
         )
 
-        for ((key, resolvedName) in knownMap) {
+        for ((key, resolvedName) in knownContacts) {
             if (clean.contains(key, ignoreCase = true)) {
-                // Check if user specified a custom message
                 val afterContact = clean.substringAfter(key).trim()
                 var customMsg = afterContact
                     .replace(Regex("(?i)(ko|को|ke paas|के पास|par|pe|me|पर|whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), " ")
-                    .replace(Regex("(?i)(likhkar send karo|likh kar send karo|likhkar bhejo|send karo|send kar do|bhejo|bhej do|सेंड करो|सेंड कर दो|भेजो|भेज दो|मैसेज करो|मैसेज भेज दो)"), " ")
+                    .replace(Regex("(?i)(likhkar send kar do|likh kar send kar do|likhkar send karo|likh kar send karo|likhkar bhej do|likh kar bhej do|likhkar bhejo|likh kar bhejo|send kar do|send karo|bhej do|bhejo|मैसेज कर दो|मैसेज करो|मैसेज भेज दो|मैसेज भेजो|लिखकर सेंड कर दो|लिखकर सेंड करो|लिख कर सेंड करो|लिख कर सेंड कर दो|लिखकर भेज दो|लिखकर भेजो|सेंड कर दो|सेंड करो|भेज दो|भेजो|लिखकर|लिख कर)"), " ")
                     .trim()
                     .replace(Regex("\\s+"), " ")
 
-                val msg = if (customMsg.isNotBlank() && customMsg.length > 1) customMsg
-                          else if (clean.contains("हाय") || clean.contains("hi", ignoreCase = true)) "हाय"
-                          else "नमस्ते"
+                val isGreetingOnly = customMsg.isBlank() ||
+                        customMsg.equals("है", ignoreCase = true) ||
+                        customMsg.equals("हाय", ignoreCase = true) ||
+                        customMsg.equals("hi", ignoreCase = true) ||
+                        customMsg.equals("hello", ignoreCase = true) ||
+                        customMsg.equals("namaste", ignoreCase = true) ||
+                        customMsg.length <= 1
+
+                val msg = if (!isGreetingOnly) customMsg else "हाय"
                 return Pair(resolvedName, msg)
             }
         }
 
         // Generic regex extraction
-        val regexWithSplitters = Regex("(?i)(.*?)\\s*(?:ke paas|के पास|ko|को)\\s*(?:whatsapp par|whatsapp pe|whatsapp me|व्हाट्सएप पर)?\\s*(.*?)\\s*(?:likhkar send karo|likh kar send karo|likhkar bhejo|send karo|send kar do|bhejo|bhej do|सेंड करो|सेंड कर दो|भेजो|भेज दो|मैसेज करो|मैसेज भेज दो)?$")
+        val regexWithSplitters = Regex("(?i)(.*?)\\s*(?:ke paas|के पास|ko|को)\\s*(?:whatsapp par|whatsapp pe|whatsapp me|व्हाट्सएप पर)?\\s*(.*?)\\s*(?:likhkar send kar do|likhkar send karo|likhkar bhejo|send karo|send kar do|bhejo|bhej do|सेंड कर दो|सेंड करो|भेज दो|भेजो|मैसेज करो|मैसेज भेज दो|लिखकर)?$")
         val match = regexWithSplitters.find(clean)
         if (match != null) {
             var contact = match.groupValues[1]
                 .replace(Regex("(?i)(whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), "")
                 .replace(Regex("^(r|aur|and|are|to|pe|par|babu|bhai)\\s+"), "")
                 .trim()
-            var message = match.groupValues[2]
+            var rawMessage = match.groupValues[2]
                 .replace(Regex("(?i)(whatsapp par|whatsapp pe|whatsapp me|whatsapp|व्हाट्सएप पर|व्हाट्सएप)"), "")
+                .replace(Regex("(?i)(likhkar send kar do|likhkar send karo|likhkar bhejo|send kar do|send karo|bhej do|bhejo|लिखकर सेंड कर दो|लिखकर सेंड करो|लिखकर भेजो|लिखकर|सेंड कर दो|सेंड करो|भेज दो|भेजो)"), "")
                 .trim()
 
             if (contact.isNotBlank()) {
-                if (message.isBlank() || message.contains("hi") || message.contains("हाय")) {
-                    message = "हाय"
-                }
-                return Pair(contact, message)
+                val isGreeting = rawMessage.isBlank() || rawMessage.contains("hi", ignoreCase = true) || rawMessage.contains("हाय") || rawMessage == "है"
+                val finalMessage = if (!isGreeting) rawMessage else "हाय"
+                return Pair(contact, finalMessage)
             }
         }
 

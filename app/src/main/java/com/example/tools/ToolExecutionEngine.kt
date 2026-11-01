@@ -690,25 +690,42 @@ class ToolExecutionEngine(private val context: Context) {
             MayaAccessibilityService.targetInstagramMessage = message
             MayaAccessibilityService.shouldAutoClickInstagram = true
 
-            // Open Instagram Direct URL
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ig.me/m/$cleanUser")).apply {
-                setPackage("com.instagram.android")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val isAsciiHandle = cleanUser.isNotEmpty() && cleanUser.matches(Regex("^[a-zA-Z0-9._]{1,30}$"))
+
+            val pm = context.packageManager
+            val launchIntent = pm.getLaunchIntentForPackage("com.instagram.android")
+
+            val intent = if (isAsciiHandle) {
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/_u/$cleanUser")).apply {
+                    setPackage("com.instagram.android")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            } else {
+                // Open Instagram direct inbox or main app safely to avoid ig.me crash
+                launchIntent?.apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                } ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com")).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
             }
 
             try {
                 context.startActivity(intent)
-                return "Opened Instagram Direct with $usernameOrName to send '$message'."
+                return "Opened Instagram for $usernameOrName with message '$message'."
             } catch (e: Exception) {
-                // Fallback to direct web or profile
-                val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/_u/$cleanUser")).apply {
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(launchIntent)
+                    return "Opened Instagram app. Message '$message' copied to clipboard."
+                }
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com")).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                context.startActivity(fallbackIntent)
-                return "Opened $usernameOrName's Instagram. Message '$message' copied to clipboard."
+                context.startActivity(webIntent)
+                return "Opened Instagram. Message '$message' copied to clipboard."
             }
         } catch (e: Exception) {
-            return "Instagram is not installed: ${e.message}"
+            return "Instagram error: ${e.message}"
         }
     }
 

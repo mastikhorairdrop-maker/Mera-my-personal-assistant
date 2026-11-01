@@ -222,7 +222,7 @@ class MayaWakeWordManager(
                 var energyBurstCount = 0
                 var pauseFrames = 0
                 var potentialKeywordDetected = false
-                val threshold = 520.0
+                val threshold = 360.0
 
                 while (!isPaused && isListening && !isCommandActive) {
                     val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -236,15 +236,15 @@ class MayaWakeWordManager(
                         if (rms > threshold) {
                             energyBurstCount++
                             pauseFrames = 0
-                            // 3 to 18 consecutive frames roughly corresponds to a 2-3 syllable phrase like "Ok Maya"
-                            if (energyBurstCount in 4..14) {
+                            // 3 to 16 consecutive frames roughly corresponds to a 2-3 syllable phrase like "Ok Maya"
+                            if (energyBurstCount in 3..16) {
                                 potentialKeywordDetected = true
                             }
                         } else {
                             if (potentialKeywordDetected) {
                                 pauseFrames++
                                 // After a short trailing pause following a clean syllable burst, trigger!
-                                if (pauseFrames in 2..5) {
+                                if (pauseFrames in 2..6) {
                                     Log.i(TAG, "Offline acoustic cadence matched 'Ok Maya' (energy frames: $energyBurstCount). Triggering!")
                                     potentialKeywordDetected = false
                                     energyBurstCount = 0
@@ -254,7 +254,7 @@ class MayaWakeWordManager(
                                     break
                                 }
                             }
-                            if (pauseFrames > 6) {
+                            if (pauseFrames > 7) {
                                 energyBurstCount = 0
                                 potentialKeywordDetected = false
                             }

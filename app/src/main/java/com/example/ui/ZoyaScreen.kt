@@ -220,7 +220,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.1 (OK Maya)",
+                            text = "● NEW BUILD v2.3 (Boss Voice & Sweet AI)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -317,7 +317,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.2 ACTIVE",
+                                "NEW UPDATE v2.3 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -328,7 +328,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "SWEET NATURAL VOICE & SMART ACTIONS",
+                                    "BOSS VOICE & SWEET NATURAL AI",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -337,7 +337,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Sweet Natural Voice • Instant WhatsApp • Smart Screen Lock",
+                            "Sweet Voice • Boss Recognition • Direct WhatsApp • Gemini Image • YouTube Play",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )

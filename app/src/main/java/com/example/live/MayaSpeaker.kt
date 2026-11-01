@@ -42,7 +42,15 @@ object MayaSpeaker {
         }
 
         try {
-            tts = TextToSpeech(app) { status ->
+            val googleTtsPkg = "com.google.android.tts"
+            val hasGoogleTts = try {
+                app.packageManager.getPackageInfo(googleTtsPkg, 0)
+                true
+            } catch (_: Exception) {
+                false
+            }
+
+            val listener = TextToSpeech.OnInitListener { status ->
                 if (status == TextToSpeech.SUCCESS) {
                     val hindiLocale = Locale("hi", "IN")
                     val result = tts?.setLanguage(hindiLocale)
@@ -54,9 +62,9 @@ object MayaSpeaker {
                     // Select the best natural female voice from available voices
                     selectBestFemaleVoice()
 
-                    // Sweet, youthful, expressive pitch & pace matching Maya
-                    tts?.setPitch(1.18f)
-                    tts?.setSpeechRate(1.0f)
+                    // Sweet, lively, affectionate pitch & pace matching Maya reference video
+                    tts?.setPitch(1.22f)
+                    tts?.setSpeechRate(1.02f)
 
                     tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {
@@ -81,6 +89,12 @@ object MayaSpeaker {
                     Log.e(TAG, "Failed to initialize TextToSpeech: status=$status")
                     isInitialized = false
                 }
+            }
+
+            tts = if (hasGoogleTts) {
+                TextToSpeech(app, listener, googleTtsPkg)
+            } else {
+                TextToSpeech(app, listener)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception initializing MayaSpeaker: ${e.message}")
