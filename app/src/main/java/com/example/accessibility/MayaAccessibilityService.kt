@@ -5,6 +5,9 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Rect
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -203,8 +206,23 @@ class MayaAccessibilityService : AccessibilityService() {
             mainHandler.postDelayed({ shouldAutoClickInstagram = false }, 18000)
         }
 
+        private fun findWhatsAppEntryBox(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+            val ids = listOf(
+                "com.whatsapp:id/entry",
+                "com.whatsapp:id/conversation_text_entry",
+                "com.whatsapp:id/input_text",
+                "com.whatsapp.w4b:id/entry",
+                "com.whatsapp.w4b:id/conversation_text_entry"
+            )
+            for (id in ids) {
+                val nodes = root.findAccessibilityNodeInfosByViewId(id)
+                if (nodes.isNotEmpty()) return nodes[0]
+            }
+            return findFirstEditableNode(root)
+        }
+
         private fun scheduleWhatsAppSendRetry(attempt: Int) {
-            if (!shouldAutoClickWhatsApp || attempt > 35) return
+            if (!shouldAutoClickWhatsApp || attempt > 40) return
             mainHandler.postDelayed({
                 val inst = instance
                 if (inst != null && shouldAutoClickWhatsApp) {
@@ -212,42 +230,48 @@ class MayaAccessibilityService : AccessibilityService() {
                         val root = inst.rootInActiveWindow
                         if (root != null) {
                             val msg = targetWhatsAppMessage ?: "हाय"
-                            val entryBoxes = root.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry")
-                                .ifEmpty { root.findAccessibilityNodeInfosByViewId("com.whatsapp.w4b:id/entry") }
+                            val entryBox = findWhatsAppEntryBox(root)
                             
-                            var textReady = false
-                            for (box in entryBoxes) {
-                                val currentText = box.text?.toString() ?: ""
+                            if (entryBox != null) {
+                                val currentText = entryBox.text?.toString() ?: ""
                                 if (currentText.isBlank()) {
                                     val args = Bundle().apply {
                                         putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, msg)
                                     }
-                                    box.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
-                                    box.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-                                    textReady = true
-                                } else {
-                                    textReady = true
+                                    entryBox.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+                                    entryBox.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+
+                                    try {
+                                        val clipboard = inst.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                        clipboard?.setPrimaryClip(ClipData.newPlainText("WAMsg", msg))
+                                        entryBox.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+                                    } catch (_: Exception) {}
                                 }
                             }
 
-                            // Once text is entered, search and click Send button
+                            // Try clicking Send button via view IDs & content descriptions
                             var clicked = inst.searchAndClickSendButton(root)
-                            if (!clicked && entryBoxes.isNotEmpty()) {
-                                val bounds = Rect()
-                                entryBoxes[0].getBoundsInScreen(bounds)
-                                val sendX = inst.resources.displayMetrics.widthPixels * 0.92f
-                                val sendY = bounds.centerY().toFloat()
-                                if (sendX > 0 && sendY > 0) {
-                                    clicked = dispatchGestureClick(sendX, sendY)
+
+                            // If not clicked, calculate and dispatch physical click at bottom-right Send location
+                            if (!clicked) {
+                                val dm = inst.resources.displayMetrics
+                                val sendX = dm.widthPixels * 0.92f
+                                val sendY = if (entryBox != null) {
+                                    val b = Rect()
+                                    entryBox.getBoundsInScreen(b)
+                                    if (b.centerY() > 0) b.centerY().toFloat() else dm.heightPixels * 0.94f
+                                } else {
+                                    dm.heightPixels * 0.94f
                                 }
+                                clicked = dispatchGestureClick(sendX, sendY)
                             }
 
                             if (clicked) {
-                                Log.d(TAG, "WhatsApp send button clicked on retry attempt $attempt")
+                                Log.d(TAG, "WhatsApp send triggered on attempt $attempt")
                                 mainHandler.postDelayed({
                                     val activeRoot = inst.rootInActiveWindow
-                                    val currentBoxes = activeRoot?.findAccessibilityNodeInfosByViewId("com.whatsapp:id/entry") ?: emptyList()
-                                    if (currentBoxes.isEmpty() || currentBoxes[0].text?.toString().isNullOrBlank()) {
+                                    val currentBox = activeRoot?.let { findWhatsAppEntryBox(it) }
+                                    if (currentBox == null || currentBox.text?.toString().isNullOrBlank()) {
                                         shouldAutoClickWhatsApp = false
                                     } else {
                                         scheduleWhatsAppSendRetry(attempt + 1)
@@ -675,29 +699,36 @@ class MayaAccessibilityService : AccessibilityService() {
 
     fun performSafeClick(node: AccessibilityNodeInfo): Boolean {
         try {
+            var clicked = false
+            if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                clicked = true
+            }
+
+            if (!clicked) {
+                var parent = node.parent
+                while (parent != null) {
+                    if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        clicked = true
+                        break
+                    }
+                    parent = parent.parent
+                }
+            }
+
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
             if (!bounds.isEmpty && bounds.centerX() > 0 && bounds.centerY() > 0) {
                 val x = bounds.centerX().toFloat()
                 val y = bounds.centerY().toFloat()
-                if (dispatchGestureClick(x, y)) return true
-            }
-
-            if (node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                return true
-            }
-
-            var parent = node.parent
-            while (parent != null) {
-                if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                    return true
+                if (dispatchGestureClick(x, y)) {
+                    clicked = true
                 }
-                parent = parent.parent
             }
+            return clicked
         } catch (e: Exception) {
             Log.e(TAG, "Error in performSafeClick", e)
+            return false
         }
-        return false
     }
 
     override fun onInterrupt() {

@@ -222,7 +222,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.4 (Touch Guard & Auto Unlock)",
+                            text = "● NEW BUILD v2.5 (WhatsApp Auto-Send & Sweet Voice)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -319,7 +319,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.4 ACTIVE",
+                                "NEW UPDATE v2.5 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -330,7 +330,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "TOUCH GUARD & AUTO UNLOCK",
+                                    "WHATSAPP AUTO-SEND & SWEET VOICE",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -339,7 +339,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Touch Guard Mode • Auto Screen Unlock • Anti-Theft Siren • Sweet Voice",
+                            "Auto-Send WhatsApp • Crash-Free Instagram • Sweet Natural Voice • Auto Unlock",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )

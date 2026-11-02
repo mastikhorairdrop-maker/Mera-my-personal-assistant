@@ -709,34 +709,16 @@ class ToolExecutionEngine(private val context: Context) {
             val pm = context.packageManager
             val launchIntent = pm.getLaunchIntentForPackage("com.instagram.android")
 
-            val intent = if (isAsciiHandle) {
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/_u/$cleanUser")).apply {
-                    setPackage("com.instagram.android")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                context.startActivity(launchIntent)
+                return "Opened Instagram app. Message '$message' copied to clipboard."
             } else {
-                // Open Instagram direct inbox or main app safely to avoid ig.me crash
-                launchIntent?.apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                } ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com")).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            }
-
-            try {
-                context.startActivity(intent)
-                return "Opened Instagram for $usernameOrName with message '$message'."
-            } catch (e: Exception) {
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(launchIntent)
-                    return "Opened Instagram app. Message '$message' copied to clipboard."
-                }
                 val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com")).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(webIntent)
-                return "Opened Instagram. Message '$message' copied to clipboard."
+                return "Opened Instagram web. Message '$message' copied to clipboard."
             }
         } catch (e: Exception) {
             return "Instagram error: ${e.message}"

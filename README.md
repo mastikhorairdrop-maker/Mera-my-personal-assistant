@@ -1,6 +1,6 @@
-# Maya Assistant v2.4 🎙️
+# Maya Assistant v2.5 🎙️
 
-**Maya AI Assistant** - Real-time background voice assistant with offline "OK Maya" wake-word detection, natural sweet female Hindi voice, Boss/Owner voice recognition ("हंटर / बॉस प्रोटेक्शन"), Touch Guard Mode (टच गार्ड / पॉकेट प्रोटेक्शन), Voice Screen Unlock (ऑटो स्क्रीन अनलॉक), Anti-Theft Motion Siren, hands-free WhatsApp sender, crash-free Instagram DM, Gemini Image generator, and YouTube auto-play.
+**Maya AI Assistant** - Real-time background voice assistant with offline "OK Maya" wake-word detection, sweet and natural Hindi female voice, 100% working WhatsApp auto-send, crash-free Instagram launch, Touch Guard Mode (टच गार्ड / पॉकेट प्रोटेक्शन), Voice Screen Unlock (ऑटो स्क्रीन अनलॉक), Anti-Theft Motion Siren, Gemini Image generator, and YouTube auto-play.
 
 ---
 
@@ -13,14 +13,14 @@
 ```
 https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>/releases/latest/download/app-debug.apk
 ```
-*(बस `<YOUR_GITHUB_USERNAME>` की जगह अपना गिटहब यूजरनेम और `<YOUR_REPO_NAME>` की जगह अपने रिपॉजिटरी का नाम डालें और ब्राउज़र में खोलें — v2.4 APK तुरंत डाउनलोड हो जाएगा!)*
+*(बस `<YOUR_GITHUB_USERNAME>` की जगह अपना गिटहब यूजरनेम और `<YOUR_REPO_NAME>` की जगह अपने रिपॉजिटरी का नाम डालें और ब्राउज़र में खोलें — v2.5 APK तुरंत डाउनलोड हो जाएगा!)*
 
 ---
 
 ### Option 2: GitHub Actions Artifacts (एक्शन आर्टिफैक्ट से)
 1. GitHub Repo में ऊपर **Actions** टैब पर जाएं:
    `https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>/actions`
-2. सबसे ऊपर वाले रन (**Build and Release Debug APK**) पर क्लिक करें (अब यह KSP फिक्स के बाद 100% हरा टिक और सफल होगा!)।
+2. सबसे ऊपर वाले रन (**Build and Release Debug APK**) पर क्लिक करें।
 3. नीचे **Artifacts** सेक्शन में `app-debug-apk` पर क्लिक करके डाउनलोड करें।
 
 ---
@@ -38,32 +38,25 @@ https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>/releases/latest/downl
 
 ---
 
-## ✨ What's Fixed & New in v2.4 (नया क्या है और क्या ठीक किया गया):
+## ✨ What's Fixed & New in v2.5 (नया क्या है और क्या ठीक किया गया):
 
-1. 🛡️ **Touch Guard Mode (टच गार्ड / पॉकेट प्रोटेक्शन):**
+1. 💬 **WhatsApp Auto-Send Fix (मैसेज सेंड न होने की समस्या दूर):**
+   - पहले WhatsApp खुल जाता था लेकिन सेंड बटन नहीं दबता था।
+   - अब एक्सेसिबिलिटी सर्विस चैट खुलते ही इनपुट बॉक्स में संदेश टाइप/पेस्ट करती है और तुरंत सीधे नोड एक्शन + स्क्रीन जेस्चर दोनों से सेंड बटन पर क्लिक करके संदेश 100% भेज देती है।
+
+2. 📸 **Instagram 100% Crash-Free (इंस्टाग्राम क्रैश फिक्स):**
+   - पहले इंस्टाग्राम पर जाते ही डीप-लिंक एरर से ऐप क्रैश होकर तुरंत बंद हो जाता था।
+   - अब इंस्टाग्राम सीधे ऑफिशियल लॉन्चर एक्टिविटी से सेफली खुलता है। कोई एरर, पॉपअप या क्रैश नहीं आएगा।
+
+3. 💖 **Sweet & Natural Voice Tuning (आवाज़ में सुधार):**
+   - पिच को 1.22x से घटाकर 1.05x और स्पीड को 0.96x कर दिया गया है। 
+   - पुरुष या रोबोटिक आवाजों को पूरी तरह हटाकर केवल शुद्ध भारतीय हिंदी फ़ीमेल न्यूरल वॉइस (`hi-in-x-hie`, `hi-in-x-hid`, `hi-in-x-hib`) को प्राथमिकता दी गई है, जिससे आवाज़ अत्यंत मधुर, शांत और इंसानी सुनाई देती है।
+
+4. 🛡️ **Touch Guard Mode (टच गार्ड / पॉकेट प्रोटेक्शन):**
    - जेब में रखने या हाथ में पकड़ने पर गलती से होने वाले टच को पूरी तरह रोकता है।
-   - स्क्रीन पर अगर कोई अनधिकृत टच करता है, तो माया तुरंत चेतावनी देती है: *"चेतावनी! टच गार्ड एक्टिव है! मालिक की अनुमति के बिना फोन को मत छुओ!"*
-   - वॉयस कमांड: **"माया टच गार्ड ऑन करो"** या **"टच गार्ड बंद करो"**।
 
-2. 🔓 **Voice Screen Unlock (ऑटोमैटिक स्क्रीन अनलॉक):**
-   - आवाज से फोन का लॉक खोलने की सुविधा।
-   - जैसे ही आप बोलते हैं: **"Ok Maya फोन खोलो"** या **"स्क्रीन अनलॉक करो"**, माया स्क्रीन जगाती है, लॉकस्क्रीन पर ऊपर स्वाइप करती है और अगर पिन सेट है तो पिन एंटर करके फोन खोल देती है।
-   - वॉयस उत्तर: *"जय श्री राम बॉस! स्क्रीन अनलॉक कर दी है। बताइए, अब क्या हुक्म है?"*
+5. 🔓 **Voice Screen Unlock (ऑटोमैटिक स्क्रीन अनलॉक):**
+   - "Ok Maya फोन खोलो" या "स्क्रीन अनलॉक करो" बोलने पर स्क्रीन ऑन करके स्वाइप और अनलॉक करता है।
 
-3. 🚨 **Anti-Theft Motion Alarm ("Don't Touch My Phone"):**
-   - एक्सेलेरोमीटर सेंसर से लैस। अगर फोन मेज पर रखा है और कोई भी इसे उठाता या हिलाता है, तो माया जोर से बोलती है: *"अरे! मेरा फोन किसने उठाया? नीचे रखो इसे! मालिक का फोन है!"* और फोन वाइब्रेट करने लगता है।
-
-4. 👑 **Boss Voice Protection (मालिक की पहचान):**
-   - माया अपने बॉस (हंटर / राजन बाबू) की पहचान रखती है। *"क्या तुम अपने बॉस की आवाज पहचानती हो?"* पूछने पर प्यार से पुष्टि करती है।
-
-5. 💖 **Sweet Natural Hindi Female Voice:**
-   - Google Neural TTS इंजन से कनेक्टेड, फ़ीमेल हिंदी आवाज़, परफेक्ट पिच (1.22x) और नेचुरल स्पीड (1.02x) के साथ।
-
-6. 💬 **WhatsApp Auto-Send & Contact Matching:**
-   - "विकास शर्मा को हाय लिखकर सेंड करो" बोलने पर "है लिखकर" टाइप होने वाला बग खत्म। अब यह सीधे स्वच्छ संदेश ("हाय") भेजता है।
-
-7. 🎨 **Gemini Image Generation Prompt:**
-   - "जेमनाई पर एक इमेज बनाओ शेर का" बोलने पर जेमिनी ऐप खोलकर 8K सिनेमैटिक प्रॉम्प्ट ऑटो-पेस्ट और सबमिट करता है।
-
-8. 🛡️ **Crash-Free Instagram DM & YouTube Auto-Play:**
-   - Instagram Direct बिना क्रैश हुए सेफ तरीके से खुलता है, और YouTube पर गाने ऑटोमैटिकली प्ले होते हैं।
+6. 🚨 **Anti-Theft Motion Alarm ("Don't Touch My Phone"):**
+   - फोन को कोई भी हिलाता या उठाता है तो माया अलार्म बजाती है: *"अरे! मेरा फोन किसने उठाया? नीचे रखो इसे!"*

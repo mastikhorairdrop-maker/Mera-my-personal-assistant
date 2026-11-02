@@ -62,9 +62,9 @@ object MayaSpeaker {
                     // Select the best natural female voice from available voices
                     selectBestFemaleVoice()
 
-                    // Sweet, lively, affectionate pitch & pace matching Maya reference video
-                    tts?.setPitch(1.22f)
-                    tts?.setSpeechRate(1.02f)
+                    // Sweet, natural, warm, affectionate pitch & pace
+                    tts?.setPitch(1.05f)
+                    tts?.setSpeechRate(0.96f)
 
                     tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {
@@ -121,8 +121,9 @@ object MayaSpeaker {
                 "hi-in-x-hie-local",
                 "hi-in-x-hid-network",
                 "hi-in-x-hid-local",
-                "hi-in-x-hic-network",
-                "hi-in-x-hic-local"
+                "hi-in-x-hib-network",
+                "hi-in-x-hib-local",
+                "hi-in-x-hif-local"
             )
 
             for (pref in preferredVoiceNames) {
@@ -134,14 +135,18 @@ object MayaSpeaker {
             }
 
             if (bestVoice == null) {
-                // Find any female voice with Hindi locale
+                // Find any female voice with Hindi locale, strictly avoiding male voices
                 bestVoice = voices.find { voice ->
                     val isHindi = voice.locale.language == "hi" || voice.locale.country.equals("IN", ignoreCase = true)
+                    val isMale = voice.name.contains("male", ignoreCase = true) ||
+                            voice.name.contains("hic", ignoreCase = true) ||
+                            voice.name.contains("hia", ignoreCase = true)
                     val isFemale = voice.name.contains("female", ignoreCase = true) ||
                             voice.name.contains("-f0", ignoreCase = true) ||
                             voice.name.contains("hie", ignoreCase = true) ||
-                            voice.name.contains("hid", ignoreCase = true)
-                    isHindi && isFemale
+                            voice.name.contains("hid", ignoreCase = true) ||
+                            voice.name.contains("hib", ignoreCase = true)
+                    isHindi && !isMale && isFemale
                 }
             }
 

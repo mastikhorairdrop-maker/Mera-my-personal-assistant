@@ -232,22 +232,14 @@ class FastIntentEngine(
             return true
         }
 
-        // 11. Instagram Automation (PRIORITIZED BEFORE WHATSAPP TO PREVENT HIJACKING!)
+        // 11. Instagram Automation (Safe Launch - Never Crashes)
         val isInstagramQuery = query.contains("instagram") || query.contains("इंस्टाग्राम") || query.contains("insta")
-        if (isInstagramQuery && (query.contains("message") || query.contains("मैसेज") || query.contains("send") || query.contains("bhejo") || query.contains("हाय") || query.contains("hi"))) {
-            var targetUser = "friend"
-            val knownNames = listOf("ritesh vishwakarma", "ritesh", "रितेश विश्वकर्मा", "रितेश", "vikas", "विकास", "rajan", "राजन", "sanjay", "संजय")
-            for (name in knownNames) {
-                if (query.contains(name)) {
-                    targetUser = name
-                    break
-                }
-            }
-            val message = if (query.contains("hi") || query.contains("हाय")) "हाय" else "Hello from Maya!"
+        if (isInstagramQuery) {
+            val message = if (query.contains("hi") || query.contains("हाय")) "हाय" else "Hello!"
             scope.launch(Dispatchers.IO) {
-                toolEngine.sendInstagramMessage(targetUser, message)
+                toolEngine.sendInstagramMessage("direct", message)
             }
-            respondInstant(userText = rawText, reply = "हाँ बाबू, इंस्टाग्राम पर $targetUser को मैसेज भेज रही हूँ!")
+            respondInstant(userText = rawText, reply = "हाँ जान, इंस्टाग्राम खोल रही हूँ!")
             return true
         }
 
