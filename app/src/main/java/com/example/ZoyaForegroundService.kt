@@ -54,6 +54,7 @@ class ZoyaForegroundService : Service() {
 
     // WakeLock to prevent the CPU from entering deep sleep and stopping background listening
     private var wakeLock: PowerManager.WakeLock? = null
+    private var systemAnnouncementsReceiver: com.example.receivers.SystemAnnouncementsReceiver? = null
 
     private var isRecording = false
 
@@ -145,6 +146,20 @@ class ZoyaForegroundService : Service() {
                 }
             } else {
                 try { startForeground(NOTIFICATION_ID, initialNotification) } catch (_: Exception) {}
+            }
+
+            // Register system announcements for real-time flight mode & battery charging alerts
+            try {
+                val receiver = com.example.receivers.SystemAnnouncementsReceiver()
+                val filter = com.example.receivers.SystemAnnouncementsReceiver.createIntentFilter()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    registerReceiver(receiver, filter)
+                }
+                systemAnnouncementsReceiver = receiver
+            } catch (e: Exception) {
+                Log.e("MayaService", "Error registering SystemAnnouncementsReceiver", e)
             }
 
             // Initialize EdgeLightOverlayManager with user preferences
@@ -636,6 +651,10 @@ class ZoyaForegroundService : Service() {
         try { liveSessionManager.stopSession() } catch (_: Exception) {}
         try { EdgeLightOverlayManager.hide() } catch (_: Exception) {}
         try { FloatingMayaOverlayManager.hide() } catch (_: Exception) {}
+        try {
+            systemAnnouncementsReceiver?.let { unregisterReceiver(it) }
+            systemAnnouncementsReceiver = null
+        } catch (_: Exception) {}
         job.cancel()
     }
 

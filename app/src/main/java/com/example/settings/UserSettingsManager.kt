@@ -269,4 +269,28 @@ object UserSettingsManager {
     fun setMotionAlarmEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean("motion_alarm_enabled", enabled).apply()
     }
+
+    fun getAutoUnlockEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("auto_unlock_enabled", true)
+    }
+
+    fun setAutoUnlockEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("auto_unlock_enabled", enabled).apply()
+    }
+
+    fun getAirplaneAnnouncementEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("airplane_announcement_enabled", true)
+    }
+
+    fun setAirplaneAnnouncementEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("airplane_announcement_enabled", enabled).apply()
+    }
+
+    fun getChargingAnnouncementEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("charging_announcement_enabled", true)
+    }
+
+    fun setChargingAnnouncementEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("charging_announcement_enabled", enabled).apply()
+    }
 }

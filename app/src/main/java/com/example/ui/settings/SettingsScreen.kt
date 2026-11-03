@@ -40,6 +40,7 @@ import androidx.core.content.ContextCompat
 import com.example.BuildConfig
 import com.example.ZoyaForegroundService
 import com.example.accessibility.MayaAccessibilityService
+import com.example.guard.TouchGuardManager
 import com.example.memory.MayaMemoryManager
 import com.example.settings.PersonalityMode
 import com.example.settings.UserSettingsManager
@@ -1285,13 +1286,25 @@ fun LookAndFeelScreen(onNavigateBack: () -> Unit) {
 }
 
 /**
- * PHONE CONTROL SCREEN (Accessibility, permissions & shortcuts)
+ * PHONE CONTROL SCREEN (Touch Guard, Screen Unlock, Accessibility, Announcements & System Permissions)
  */
 @Composable
 fun PhoneControlScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
-    val isAccessibilityActive = MayaAccessibilityService.isAccessibilityPermissionGranted(context)
-    val isBatteryExempt = remember { ZoyaForegroundService.isBatteryOptimizationIgnored(context) }
+    var isAccessibilityActive by remember { mutableStateOf(MayaAccessibilityService.isAccessibilityPermissionGranted(context)) }
+    var isBatteryExempt by remember { mutableStateOf(ZoyaForegroundService.isBatteryOptimizationIgnored(context)) }
+    var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+
+    var touchGuardActive by remember { mutableStateOf(TouchGuardManager.isTouchGuardActive) }
+    var motionAlarmEnabled by remember { mutableStateOf(UserSettingsManager.getMotionAlarmEnabled(context)) }
+
+    var autoUnlockEnabled by remember { mutableStateOf(UserSettingsManager.getAutoUnlockEnabled(context)) }
+    var autoUnlockPin by remember { mutableStateOf(UserSettingsManager.getAutoUnlockPin(context)) }
+    var isPinEditing by remember { mutableStateOf(false) }
+    var pinInputValue by remember { mutableStateOf(autoUnlockPin) }
+
+    var airplaneAlertsEnabled by remember { mutableStateOf(UserSettingsManager.getAirplaneAnnouncementEnabled(context)) }
+    var chargingAlertsEnabled by remember { mutableStateOf(UserSettingsManager.getChargingAnnouncementEnabled(context)) }
 
     Column(
         modifier = Modifier
@@ -1310,15 +1323,22 @@ fun PhoneControlScreen(onNavigateBack: () -> Unit) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Phone control", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Column {
+                Text("Phone Control & Security", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("टच गार्ड, ऑटो अनलॉक और सिस्टम सेटिंग्स", color = Color(0xFFC084FC), fontSize = 12.sp)
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // 1. TOUCH GUARD SECTION
+        SectionHeader(title = "TOUCH GUARD & ANTI-THEFT", subtitle = "टच स्क्रीन लॉकर और मोशन अलार्म")
+        Spacer(modifier = Modifier.height(8.dp))
+
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
-            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            border = BorderStroke(1.dp, Color(0xFF381E72)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -1328,9 +1348,315 @@ fun PhoneControlScreen(onNavigateBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🛡️", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Full Touch Guard Mode", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Text(
+                            if (touchGuardActive) "सुरक्षा कवच सक्रिय है! पूरी स्क्रीन प्रोटेक्टेड है।" else "पूरी स्क्रीन पर टच ब्लॉक करें ताकि कोई फोन न छू सके",
+                            color = if (touchGuardActive) Color(0xFF4ADE80) else Color(0xFF94A3B8),
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Switch(
+                        checked = touchGuardActive,
+                        onCheckedChange = { enable ->
+                            if (enable) {
+                                val res = TouchGuardManager.enableTouchGuard(context)
+                                touchGuardActive = TouchGuardManager.isTouchGuardActive
+                                hasOverlayPermission = Settings.canDrawOverlays(context)
+                                if (res == "OVERLAY_PERMISSION_REQUIRED" || !hasOverlayPermission) {
+                                    Toast.makeText(context, "कृपया पहले 'Display over other apps' अनुमति दें!", Toast.LENGTH_LONG).show()
+                                }
+                            } else {
+                                TouchGuardManager.disableTouchGuard(context)
+                                touchGuardActive = false
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF22C55E),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Overlay Permission Status check
+                if (!hasOverlayPermission) {
+                    Surface(
+                        color = Color(0xFF451A03),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("⚠️ Overlay Permission आवश्यक है", color = Color(0xFFFDBA74), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("टच गार्ड को काम करने के लिए 'Display over other apps' ऑन करें", color = Color(0xFFFED7AA), fontSize = 11.sp)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val intent = Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        Uri.parse("package:${context.packageName}")
+                                    ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                                    try { context.startActivity(intent) } catch (_: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Grant", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // Anti-Theft Motion Siren Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("🚨 Anti-Theft Motion Alarm", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Text("फोन उठाने या हिलाने पर माया जोर से चेतावनी देगी", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                    }
+                    Switch(
+                        checked = motionAlarmEnabled,
+                        onCheckedChange = {
+                            motionAlarmEnabled = it
+                            UserSettingsManager.setMotionAlarmEnabled(context, it)
+                            Toast.makeText(context, if (it) "मोशन अलार्म ऑन 🚨" else "मोशन अलार्म बंद", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFA855F7),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 2. AUTO SCREEN UNLOCK WITH PIN
+        SectionHeader(title = "AUTO SCREEN UNLOCK", subtitle = "आवाज से फोन अनलॉक और पिन सेटअप")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF381E72)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔓", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Voice Screen Unlock", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                        Text("वेक वर्ड 'Ok Maya Unlock Phone' बोलने पर लॉक स्क्रीन खोलना", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                    }
+                    Switch(
+                        checked = autoUnlockEnabled,
+                        onCheckedChange = {
+                            autoUnlockEnabled = it
+                            UserSettingsManager.setAutoUnlockEnabled(context, it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFA855F7),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
+
+                Text("Lock Screen PIN (सुरक्षित पिन कोड)", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "फोन का 4 या 6 डिजिट लॉक पिन दर्ज करें ताकि माया स्क्रीन पर ऑटो-टाइप कर सके।",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = pinInputValue,
+                        onValueChange = { if (it.length <= 8) pinInputValue = it },
+                        placeholder = { Text("उदा. 1234", color = Color.Gray) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFFC084FC),
+                            unfocusedBorderColor = Color(0xFF381E72)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Button(
+                        onClick = {
+                            autoUnlockPin = pinInputValue
+                            UserSettingsManager.setAutoUnlockPin(context, pinInputValue)
+                            Toast.makeText(context, "पिन कोड सुरक्षित सेव हो गया! ✅", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E22CE))
+                    ) {
+                        Text("Save PIN")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Test Unlock Button
+                OutlinedButton(
+                    onClick = {
+                        if (!isAccessibilityActive) {
+                            Toast.makeText(context, "कृपया पहले Accessibility Service ऑन करें!", Toast.LENGTH_LONG).show()
+                            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            val pin = autoUnlockPin.ifBlank { pinInputValue }
+                            MayaAccessibilityService.unlockScreenDirectly(context, pin)
+                            Toast.makeText(context, "ऑटो-अनलॉक कमांड निष्पादित की जा रही है...", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    border = BorderStroke(1.dp, Color(0xFF9333EA)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("⚡ Test Screen Unlock Now", color = Color(0xFFC084FC), fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 3. SMART SYSTEM ANNOUNCEMENTS
+        SectionHeader(title = "SMART SYSTEM ALERTS", subtitle = "सिस्टम और चार्जिंग वॉयस अलर्ट्स")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF381E72)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Airplane Mode Spoken Alert
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("✈️", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Airplane Mode Spoken Alerts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Text("फ्लाइट मोड लगने और हटने पर बोलकर सूचित करना", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                    }
+                    Switch(
+                        checked = airplaneAlertsEnabled,
+                        onCheckedChange = {
+                            airplaneAlertsEnabled = it
+                            UserSettingsManager.setAirplaneAnnouncementEnabled(context, it)
+                            Toast.makeText(context, if (it) "फ्लाइट मोड अलर्ट ऑन ✈️" else "अलर्ट बंद", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFA855F7),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
+
+                // Smart Charging & Full Battery Spoken Alert
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔋", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Battery & Charging Assistant", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Text("चार्जर लगाने पर बैटरी % बताना और 100% फुल होने पर अलार्म देना", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                    }
+                    Switch(
+                        checked = chargingAlertsEnabled,
+                        onCheckedChange = {
+                            chargingAlertsEnabled = it
+                            UserSettingsManager.setChargingAnnouncementEnabled(context, it)
+                            Toast.makeText(context, if (it) "चार्जिंग असिस्टेंट ऑन 🔋" else "असिस्टेंट बंद", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFFA855F7),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 4. ESSENTIAL PERMISSIONS & SERVICE ENGINES
+        SectionHeader(title = "CORE PERMISSIONS & STABILITY", subtitle = "फोन कंट्रोल और बैकग्राउंड परमिशन")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Accessibility Service
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("Accessibility Service", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Text(
-                            if (isAccessibilityActive) "Accessibility Enabled: 100% Phone Control Ready ✅" else "Turn on Accessibility for WhatsApp auto-send and clicks",
+                            if (isAccessibilityActive) "Accessibility Enabled: WhatsApp auto-send & Screen Unlock ready ✅" else "WhatsApp auto-send और स्क्रीन कंट्रोल के लिए आवश्यक",
                             color = if (isAccessibilityActive) Color(0xFF4ADE80) else Color(0xFFFB923C),
                             fontSize = 12.sp
                         )
@@ -1342,14 +1668,15 @@ fun PhoneControlScreen(onNavigateBack: () -> Unit) {
                             }
                             context.startActivity(intent)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7E22CE))
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isAccessibilityActive) Color(0xFF15803D) else Color(0xFF7E22CE))
                     ) {
-                        Text(if (isAccessibilityActive) "Open" else "Enable")
+                        Text(if (isAccessibilityActive) "Active" else "Enable")
                     }
                 }
 
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
 
+                // Battery Saver Exemption
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1357,7 +1684,7 @@ fun PhoneControlScreen(onNavigateBack: () -> Unit) {
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Battery Saver Exemption", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text("Prevents Android from killing background listening", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                        Text("एंड्रॉइड को बैकग्राउंड में वेक वर्ड बंद करने से रोकता है", color = Color(0xFF94A3B8), fontSize = 12.sp)
                     }
                     if (!isBatteryExempt) {
                         Button(
@@ -1375,8 +1702,36 @@ fun PhoneControlScreen(onNavigateBack: () -> Unit) {
                         Text("Done ✅", color = Color(0xFF4ADE80), fontWeight = FontWeight.Bold)
                     }
                 }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
+
+                // Display Over Other Apps
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Display Over Other Apps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("टच गार्ड और फ्लोटिंग ऑर्ब के लिए परमिशन", color = Color(0xFF94A3B8), fontSize = 12.sp)
+                    }
+                    Button(
+                        onClick = {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:${context.packageName}")
+                            ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+                            try { context.startActivity(intent) } catch (_: Exception) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (hasOverlayPermission) Color(0xFF15803D) else Color(0xFF7E22CE))
+                    ) {
+                        Text(if (hasOverlayPermission) "Allowed" else "Manage")
+                    }
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

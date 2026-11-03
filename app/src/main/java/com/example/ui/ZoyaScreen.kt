@@ -222,7 +222,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.5 (WhatsApp Auto-Send & Sweet Voice)",
+                            text = "● NEW BUILD v2.6 (Full Touch Guard & Complete Settings)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -753,13 +753,16 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         // Toggle Touch Guard
                         Button(
                             onClick = {
-                                isTouchGuardActive = !isTouchGuardActive
-                                if (isTouchGuardActive) {
-                                    com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotionAlarm = true)
-                                    isMotionAlarmArmed = true
-                                    Toast.makeText(context, "🛡️ टच गार्ड ऑन! स्क्रीन और मोशन सुरक्षित", Toast.LENGTH_SHORT).show()
+                                if (!isTouchGuardActive) {
+                                    val res = com.example.guard.TouchGuardManager.enableTouchGuard(context, armMotionAlarm = true)
+                                    if (res != "OVERLAY_PERMISSION_REQUIRED") {
+                                        isTouchGuardActive = true
+                                        isMotionAlarmArmed = true
+                                        Toast.makeText(context, "🛡️ टच गार्ड ऑन! स्क्रीन और मोशन सुरक्षित", Toast.LENGTH_SHORT).show()
+                                    }
                                 } else {
                                     com.example.guard.TouchGuardManager.disableTouchGuard(context)
+                                    isTouchGuardActive = false
                                     isMotionAlarmArmed = false
                                     Toast.makeText(context, "टच गार्ड बंद कर दिया गया", Toast.LENGTH_SHORT).show()
                                 }
