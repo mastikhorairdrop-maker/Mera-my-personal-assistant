@@ -87,6 +87,12 @@ class ZoyaForegroundService : Service() {
 
         var activeService: ZoyaForegroundService? = null
 
+        fun reloadWakeWordEngine() {
+            try {
+                activeService?.wakeWordManager?.restartListening()
+            } catch (_: Exception) {}
+        }
+
         fun isBatteryOptimizationIgnored(context: Context): Boolean {
             val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             return powerManager.isIgnoringBatteryOptimizations(context.packageName)

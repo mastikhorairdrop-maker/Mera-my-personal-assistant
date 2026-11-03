@@ -222,7 +222,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.6 (Full Touch Guard & Complete Settings)",
+                            text = "● NEW BUILD v2.7 (Porcupine Wake Word & Sensitivity)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,

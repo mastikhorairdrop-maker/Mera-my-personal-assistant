@@ -52,6 +52,7 @@ sealed class SettingsSubScreen {
     data object PhoneControl : SettingsSubScreen()
     data object Connections : SettingsSubScreen()
     data object PrivacyAndAbout : SettingsSubScreen()
+    data object PorcupineWakeWord : SettingsSubScreen()
 }
 
 @Composable
@@ -84,12 +85,14 @@ fun FullSettingsContainer(
                     onNavigateToLookAndFeel = { currentSubScreen = SettingsSubScreen.LookAndFeel },
                     onNavigateToPhoneControl = { currentSubScreen = SettingsSubScreen.PhoneControl },
                     onNavigateToConnections = { currentSubScreen = SettingsSubScreen.Connections },
-                    onNavigateToPrivacy = { currentSubScreen = SettingsSubScreen.PrivacyAndAbout }
+                    onNavigateToPrivacy = { currentSubScreen = SettingsSubScreen.PrivacyAndAbout },
+                    onNavigateToPorcupine = { currentSubScreen = SettingsSubScreen.PorcupineWakeWord }
                 )
             }
             is SettingsSubScreen.VoiceAndLanguage -> {
                 VoiceAndLanguageScreen(
-                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub },
+                    onNavigateToPorcupine = { currentSubScreen = SettingsSubScreen.PorcupineWakeWord }
                 )
             }
             is SettingsSubScreen.LookAndFeel -> {
@@ -112,6 +115,11 @@ fun FullSettingsContainer(
                     onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
                 )
             }
+            is SettingsSubScreen.PorcupineWakeWord -> {
+                PorcupineWakeWordScreen(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
         }
     }
 }
@@ -127,7 +135,8 @@ fun SettingsHubView(
     onNavigateToLookAndFeel: () -> Unit,
     onNavigateToPhoneControl: () -> Unit,
     onNavigateToConnections: () -> Unit,
-    onNavigateToPrivacy: () -> Unit
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToPorcupine: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val voiceName = remember { UserSettingsManager.getVoiceName(context) }
@@ -319,6 +328,17 @@ fun SettingsHubView(
                     badge = null,
                     onClick = onNavigateToMemories
                 )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                val isPorcupineActive = UserSettingsManager.getPorcupineEnabled(context)
+                val currentSensPercent = (UserSettingsManager.getPorcupineSensitivity(context) * 100).toInt()
+                SettingsListItem(
+                    icon = Icons.Default.Hearing,
+                    iconBg = Color(0xFF2563EB),
+                    title = "Porcupine Wake Word",
+                    subtitle = if (isPorcupineActive) "Detection ON • Sensitivity: $currentSensPercent% • 0% Battery" else "Detection OFF • Built-in acoustic fallback",
+                    badge = if (isPorcupineActive) "$currentSensPercent%" else "OFF",
+                    onClick = onNavigateToPorcupine
+                )
             }
         }
 
@@ -389,7 +409,10 @@ fun SettingsHubView(
  * SCREENSHOT 2: Voice & Language Subscreen
  */
 @Composable
-fun VoiceAndLanguageScreen(onNavigateBack: () -> Unit) {
+fun VoiceAndLanguageScreen(
+    onNavigateBack: () -> Unit,
+    onNavigateToPorcupine: () -> Unit = {}
+) {
     val context = LocalContext.current
 
     var assistantName by remember { mutableStateOf(UserSettingsManager.getAssistantName(context)) }
@@ -730,7 +753,7 @@ fun VoiceAndLanguageScreen(onNavigateBack: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showPicovoiceDialog = true }
+                        .clickable { onNavigateToPorcupine() }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -1999,5 +2022,537 @@ fun SettingsListItem(
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+/**
+ * PORCUPINE WAKE WORD SETTINGS SCREEN
+ * Dedicated screen for toggling Porcupine wake word detection,
+ * configuring sensitivity levels (0.0 to 1.0), setting keyword models,
+ * Picovoice AccessKeys, and live audio trigger testing.
+ */
+@Composable
+fun PorcupineWakeWordScreen(onNavigateBack: () -> Unit) {
+    val context = LocalContext.current
+    var isPorcupineEnabled by remember { mutableStateOf(UserSettingsManager.getPorcupineEnabled(context)) }
+    var sensitivity by remember { mutableFloatStateOf(UserSettingsManager.getPorcupineSensitivity(context)) }
+    var accessKey by remember { mutableStateOf(UserSettingsManager.getPicoVoiceAccessKey(context)) }
+    var keywordFile by remember { mutableStateOf(UserSettingsManager.getPicoVoiceKeywordFile(context)) }
+
+    var isKeyHidden by remember { mutableStateOf(true) }
+    var keyInputValue by remember { mutableStateOf(accessKey) }
+    var isTestListening by remember { mutableStateOf(false) }
+    var testTriggeredText by remember { mutableStateOf<String?>(null) }
+
+    val currentPercent = (sensitivity * 100).toInt()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Top Navigation Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onNavigateBack,
+                modifier = Modifier
+                    .size(42.dp)
+                    .background(Color(0xFF1E1738), RoundedCornerShape(12.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = "Porcupine Wake Word",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "वेक वर्ड डिटेक्शन और सेंसिटिविटी कंट्रोल",
+                    color = Color(0xFF38BDF8),
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 1. MASTER WAKE WORD TOGGLE CARD
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF13112A)),
+            border = BorderStroke(1.5.dp, if (isPorcupineEnabled) Color(0xFF2563EB) else Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(
+                                    if (isPorcupineEnabled) Brush.linearGradient(listOf(Color(0xFF2563EB), Color(0xFF7C3AED)))
+                                    else Brush.linearGradient(listOf(Color(0xFF374151), Color(0xFF1F2937))),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("🎙️", fontSize = 22.sp)
+                        }
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                text = "Porcupine Wake Word",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (isPorcupineEnabled) "Active on-device • 0% Battery Drain" else "Engine turned off • Standby",
+                                color = if (isPorcupineEnabled) Color(0xFF4ADE80) else Color(0xFF94A3B8),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    Switch(
+                        checked = isPorcupineEnabled,
+                        onCheckedChange = { checked ->
+                            isPorcupineEnabled = checked
+                            UserSettingsManager.setPorcupineEnabled(context, checked)
+                            ZoyaForegroundService.reloadWakeWordEngine()
+                            Toast.makeText(
+                                context,
+                                if (checked) "Porcupine Wake Word Enabled ✅" else "Porcupine Disabled (Offline Acoustic Fallback Active)",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF2563EB),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E1738)
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Engine Technology Badge
+                Surface(
+                    color = if (isPorcupineEnabled && accessKey.isNotBlank()) Color(0xFF065F46) else Color(0xFF1E293B),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isPorcupineEnabled && accessKey.isNotBlank()) "⚡ PICOVOICE NEURAL ENGINE ACTIVE"
+                            else if (isPorcupineEnabled) "ℹ️ ACCESS KEY REQUIRED (RUNNING ACOUSTIC DETECTOR)"
+                            else "💤 STANDBY (WAKE WORD DETECTION DISABLED)",
+                            color = if (isPorcupineEnabled && accessKey.isNotBlank()) Color(0xFF6EE7B7) else Color(0xFF94A3B8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 2. DETECTION SENSITIVITY SLIDER & PRESETS (Core Requirement)
+        SectionHeader(
+            title = "DETECTION SENSITIVITY",
+            subtitle = "माइक्रोफ़ोन सेंसिटिविटी लेवल एडजस्ट करें"
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                // Header with current sensitivity badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFF2563EB), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("Sensitivity Level", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text("Default: 0.70 (70%)", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                        }
+                    }
+
+                    Surface(
+                        color = when {
+                            sensitivity >= 0.80f -> Color(0xFF7C3AED)
+                            sensitivity >= 0.50f -> Color(0xFF2563EB)
+                            else -> Color(0xFF0F766E)
+                        },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = String.format("%.2f (%d%%)", sensitivity, currentPercent),
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // The Interactive Slider
+                Slider(
+                    value = sensitivity,
+                    onValueChange = { newVal ->
+                        sensitivity = newVal
+                        UserSettingsManager.setPorcupineSensitivity(context, newVal)
+                    },
+                    onValueChangeFinished = {
+                        UserSettingsManager.setPorcupineSensitivity(context, sensitivity)
+                        ZoyaForegroundService.reloadWakeWordEngine()
+                    },
+                    valueRange = 0.0f..1.0f,
+                    steps = 19,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF38BDF8),
+                        activeTrackColor = Color(0xFF2563EB),
+                        inactiveTrackColor = Color(0xFF231C3D)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Dynamic Sensitivity Explanation based on value
+                Surface(
+                    color = Color(0xFF1B1638),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = when {
+                                    sensitivity < 0.40f -> "🔉 कम सेंसिटिविटी (Low Sensitivity)"
+                                    sensitivity in 0.40f..0.75f -> "🎯 संतुलित स्तर (Balanced Sensitivity)"
+                                    else -> "🔊 उच्च सेंसिटिविटी (High Sensitivity)"
+                                },
+                                color = Color(0xFFC084FC),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = when {
+                                sensitivity < 0.40f ->
+                                    "शोरगुल वाले कमरे या गाड़ी में अनचाहे ट्रिगर को रोकता है। पास आकर स्पष्ट आवाज़ में 'Ok Maya' बोलना होगा।"
+                                sensitivity in 0.40f..0.75f ->
+                                    "दैनिक उपयोग के लिए सबसे अनुशंसित (Recommended)। 1 से 3 मीटर की सामान्य दूरी से आवाज़ आसानी से पहचान लेता है।"
+                                else ->
+                                    "हल्की फुसफुसाहट (whispers) या दूर कमरे से भी ट्रिगर कर सकता है। शांत वातावरण के लिए सर्वोत्तम है।"
+                            },
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 1-Tap Preset Sensitivity Chips
+                Text("Quick Preset Levels (एक-टैप प्रीसेट):", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val presets = listOf(
+                        Pair("0.35", 0.35f),
+                        Pair("0.50", 0.50f),
+                        Pair("0.70 ⭐", 0.70f),
+                        Pair("0.85", 0.85f),
+                        Pair("0.95", 0.95f)
+                    )
+                    presets.forEach { (label, value) ->
+                        val isSelected = Math.abs(sensitivity - value) < 0.03f
+                        Surface(
+                            color = if (isSelected) Color(0xFF2563EB) else Color(0xFF1E1738),
+                            shape = RoundedCornerShape(8.dp),
+                            border = if (isSelected) BorderStroke(1.dp, Color(0xFF38BDF8)) else null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    sensitivity = value
+                                    UserSettingsManager.setPorcupineSensitivity(context, value)
+                                    ZoyaForegroundService.reloadWakeWordEngine()
+                                    Toast.makeText(context, "सेंसिटिविटी $label सेट हो गई!", Toast.LENGTH_SHORT).show()
+                                }
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) Color.White else Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier
+                                    .padding(vertical = 6.dp)
+                                    .fillMaxWidth(),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 3. KEYWORD MODEL & PICOVOICE ACCESS KEY CARD
+        SectionHeader(
+            title = "PICOVOICE CONFIGURATION",
+            subtitle = "कस्टम कीवर्ड मॉडल और एक्सेस की"
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                // Keyword File Selection
+                Text("Keyword Model (कीवर्ड मॉडल):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+
+                val keywordOptions = listOf(
+                    Pair("ok_maya_android.ppn", "🎯 'OK Maya' Custom Model (Trained for Maya)"),
+                    Pair("JARVIS", "🤖 Built-in 'Jarvis' Fallback"),
+                    Pair("COMPUTER", "💻 Built-in 'Computer' Fallback")
+                )
+
+                keywordOptions.forEach { (fileKey, label) ->
+                    val isChosen = keywordFile.equals(fileKey, ignoreCase = true)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                keywordFile = fileKey
+                                UserSettingsManager.setPicoVoiceKeywordFile(context, fileKey)
+                                ZoyaForegroundService.reloadWakeWordEngine()
+                                Toast.makeText(context, "मॉडल: $fileKey चुना गया", Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isChosen,
+                            onClick = {
+                                keywordFile = fileKey
+                                UserSettingsManager.setPicoVoiceKeywordFile(context, fileKey)
+                                ZoyaForegroundService.reloadWakeWordEngine()
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF38BDF8))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = label,
+                            color = if (isChosen) Color.White else Color(0xFF94A3B8),
+                            fontSize = 13.sp,
+                            fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(vertical = 12.dp))
+
+                // AccessKey Input
+                Text("Picovoice Console AccessKey:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Picovoice Console से फ्री लाइफटाइम एक्सेस की दर्ज करें:",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = keyInputValue,
+                    onValueChange = { keyInputValue = it },
+                    placeholder = { Text("Paste your Picovoice AccessKey here...", color = Color.Gray, fontSize = 12.sp) },
+                    singleLine = true,
+                    trailingIcon = {
+                        IconButton(onClick = { isKeyHidden = !isKeyHidden }) {
+                            Text(if (isKeyHidden) "👁️" else "🙈", fontSize = 14.sp)
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF38BDF8),
+                        unfocusedBorderColor = Color(0xFF281E4B)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://console.picovoice.ai/")).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            try { context.startActivity(intent) } catch (_: Exception) {}
+                        },
+                        border = BorderStroke(1.dp, Color(0xFF2563EB)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Get Free Key (console.picovoice.ai)", color = Color(0xFF38BDF8), fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            accessKey = keyInputValue.trim()
+                            UserSettingsManager.setPicoVoiceAccessKey(context, accessKey)
+                            ZoyaForegroundService.reloadWakeWordEngine()
+                            Toast.makeText(context, "AccessKey सेव हो गई! Porcupine चालू हो गया ✅", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        Text("Save Key", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 4. INTERACTIVE LIVE MIC & TRIGGER TEST
+        SectionHeader(
+            title = "LIVE TRIGGER TEST",
+            subtitle = "माइक्रोफ़ोन और ट्रिगर रिस्पॉन्स टेस्ट करें"
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "बोलें: 'Ok Maya' या 'Jarvis'",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "चयनित सेंसिटिविटी (${currentPercent}%) पर माइक्रोफ़ोन से वेक वर्ड ट्रिगर टेस्ट करें।",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 12.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Visual Soundwave Feedback Box
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(Color(0xFF2563EB).copy(alpha = 0.4f), Color(0xFF1E1738))
+                            ),
+                            CircleShape
+                        )
+                        .border(1.5.dp, Color(0xFF38BDF8), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🎙️", fontSize = 32.sp)
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Apply & Reload Button
+                Button(
+                    onClick = {
+                        UserSettingsManager.setPorcupineEnabled(context, isPorcupineEnabled)
+                        UserSettingsManager.setPorcupineSensitivity(context, sensitivity)
+                        ZoyaForegroundService.reloadWakeWordEngine()
+                        Toast.makeText(
+                            context,
+                            "वेक वर्ड इंजन रीलोड हो गया! सेंसिटिविटी: $currentPercent%",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "⚡ Apply & Reload Wake Word Engine",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
     }
 }

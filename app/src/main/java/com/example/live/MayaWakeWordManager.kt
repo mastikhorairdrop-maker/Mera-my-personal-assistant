@@ -106,10 +106,26 @@ class MayaWakeWordManager(
         stopCommandRecognizer()
     }
 
+    fun restartListening() {
+        releaseMic()
+        isPaused = false
+        isListening = true
+        val initializedPorcupine = initPorcupineIfConfigured()
+        if (!initializedPorcupine) {
+            startOfflineAcousticDetector()
+        }
+    }
+
     /**
      * Attempts to start Picovoice Porcupine with access key or custom .ppn keyword file
      */
     private fun initPorcupineIfConfigured(): Boolean {
+        val isPorcupineEnabled = UserSettingsManager.getPorcupineEnabled(context)
+        if (!isPorcupineEnabled) {
+            Log.d(TAG, "Porcupine wake-word detection is disabled in settings.")
+            return false
+        }
+
         val accessKey = UserSettingsManager.getPicoVoiceAccessKey(context)
         if (accessKey.isBlank()) {
             Log.d(TAG, "No Picovoice AccessKey configured. Using built-in offline acoustic wake detector.")
@@ -128,22 +144,23 @@ class MayaWakeWordManager(
 
             val keywordFileName = UserSettingsManager.getPicoVoiceKeywordFile(context)
             val customKeywordFile = getCustomKeywordFile(keywordFileName)
+            val sensitivity = UserSettingsManager.getPorcupineSensitivity(context)
 
             val builder = PorcupineManager.Builder()
                 .setAccessKey(accessKey)
-                .setSensitivity(0.7f)
+                .setSensitivity(sensitivity)
 
             if (customKeywordFile != null && customKeywordFile.exists()) {
-                Log.i(TAG, "Using custom Porcupine keyword file: ${customKeywordFile.absolutePath}")
+                Log.i(TAG, "Using custom Porcupine keyword file: ${customKeywordFile.absolutePath} with sensitivity: $sensitivity")
                 builder.setKeywordPath(customKeywordFile.absolutePath)
             } else {
-                Log.i(TAG, "Using built-in Porcupine keyword JARVIS as fallback")
+                Log.i(TAG, "Using built-in Porcupine keyword JARVIS as fallback with sensitivity: $sensitivity")
                 builder.setKeyword(Porcupine.BuiltInKeyword.JARVIS)
             }
 
             porcupineManager = builder.build(context, callback)
             porcupineManager?.start()
-            Log.i(TAG, "Picovoice Porcupine started successfully!")
+            Log.i(TAG, "Picovoice Porcupine started successfully with sensitivity: $sensitivity!")
             return true
         } catch (e: Exception) {
             Log.w(TAG, "Picovoice Porcupine initialization failed (${e.message}). Falling back to offline acoustic detector.")

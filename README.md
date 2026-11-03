@@ -1,6 +1,6 @@
-# Maya Assistant v2.6 🎙️
+# Maya Assistant v2.7 🎙️
 
-**Maya AI Assistant** - Real-time background voice assistant with offline "OK Maya" wake-word detection, sweet and natural Hindi female voice, 100% working WhatsApp auto-send, crash-free Instagram launch, Full-Screen Touch Guard Shield (टच गार्ड / पॉकेट प्रोटेक्शन), Voice Screen Unlock (ऑटो स्क्रीन अनलॉक), Anti-Theft Motion Siren, Real-time Spoken Announcements (Airplane Mode & Smart Charging), Gemini Image generator, and YouTube auto-play.
+**Maya AI Assistant** - Real-time background voice assistant with offline "OK Maya" Porcupine wake-word detection, adjustable sensitivity levels (0.0 to 1.0), sweet and natural Hindi female voice, 100% working WhatsApp auto-send, crash-free Instagram launch, Full-Screen Touch Guard Shield (टच गार्ड / पॉकेट प्रोटेक्शन), Voice Screen Unlock (ऑटो स्क्रीन अनलॉक), Anti-Theft Motion Siren, Real-time Spoken Announcements (Airplane Mode & Smart Charging), Gemini Image generator, and YouTube auto-play.
 
 ---
 
@@ -13,7 +13,7 @@
 ```
 https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>/releases/latest/download/app-debug.apk
 ```
-*(बस `<YOUR_GITHUB_USERNAME>` की जगह अपना गिटहब यूजरनेम और `<YOUR_REPO_NAME>` की जगह अपने रिपॉजिटरी का नाम डालें और ब्राउज़र में खोलें — v2.6 APK तुरंत डाउनलोड हो जाएगा!)*
+*(बस `<YOUR_GITHUB_USERNAME>` की जगह अपना गिटहब यूजरनेम और `<YOUR_REPO_NAME>` की जगह अपने रिपॉजिटरी का नाम डालें और ब्राउज़र में खोलें — v2.7 APK तुरंत डाउनलोड हो जाएगा!)*
 
 ---
 
@@ -38,9 +38,16 @@ https://github.com/<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>/releases/latest/downl
 
 ---
 
-## ✨ What's Fixed & New in v2.6 (नया क्या है और क्या ठीक किया गया):
+## ✨ What's Fixed & New in v2.7 (नया क्या है और क्या ठीक किया गया):
 
-1. 🛡️ **Touch Guard Full Screen Protection (टच गार्ड 100% फिक्स):**
+1. 🎙️ **Porcupine Wake Word & Sensitivity Settings Screen (नया फीचर):**
+   - **वेक वर्ड टॉगल (Toggle On/Off):** अब यूज़र सीधे सेटिंग्स से Porcupine वेक वर्ड डिटेक्शन को कभी भी ऑन या ऑफ कर सकते हैं।
+   - **सेंसिटिविटी लेवल स्लाइडर (0.00 से 1.00):** स्लाइडर से माइक्रोफ़ोन सेंसिटिविटी को अपनी पसंद के अनुसार एडजस्ट करें (कम शोर के लिए 0.35, सामान्य घर/ऑफिस के लिए 0.70, और दूर से या फुसफुसाहट पकड़ने के लिए 0.85+)।
+   - **1-टैप क्विक प्रीसेट्स:** `0.35`, `0.50`, `0.70 ⭐ (Recommended)`, `0.85`, `0.95` पर एक क्लिक में सेट करें।
+   - **लाइव इंजन रीलोड (Instant Apply):** "⚡ Apply & Reload Wake Word Engine" बटन दबाते ही नया सेंसिटिविटी लेवल तुरंत लागू हो जाता है।
+   - **कस्टम मॉडल्स व कीवर्ड्स:** `ok_maya_android.ppn`, Built-in Jarvis, या Computer कीवर्ड चुनने की पूरी आज़ादी।
+
+2. 🛡️ **Touch Guard Full Screen Protection (टच गार्ड 100% फिक्स):**
    - पहले टच गार्ड केवल स्क्रीन के एक छोटे से हिस्से को छूने देता था और अनुमति न होने पर चुपचाप बंद हो जाता था।
    - **अब:** टच गार्ड एक्टिव होते ही पूरी स्क्रीन पर सुरक्षा कवच (Full-screen overlay blocker) लग जाता है। कोई भी टच स्क्रीन पर काम नहीं करेगा। 
    - अगर कोई स्क्रीन छुएगा तो फोन वाइब्रेट होगा और माया चेतावनी देगी: *"चेतावनी! टच गार्ड एक्टिव है! मालिक की अनुमति के बिना फोन को मत छुओ!"*

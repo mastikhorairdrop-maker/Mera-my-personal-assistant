@@ -89,6 +89,8 @@ object UserSettingsManager {
     private const val KEY_EDGE_LIGHT_ENABLED = "edge_light_enabled"
     private const val KEY_PICOVOICE_ACCESS_KEY = "picovoice_access_key"
     private const val KEY_PICOVOICE_KEYWORD_FILE = "picovoice_keyword_file"
+    private const val KEY_PORCUPINE_ENABLED = "porcupine_enabled"
+    private const val KEY_PORCUPINE_SENSITIVITY = "porcupine_sensitivity"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -244,6 +246,23 @@ object UserSettingsManager {
 
     fun setPicoVoiceKeywordFile(context: Context, path: String) {
         getPrefs(context).edit().putString(KEY_PICOVOICE_KEYWORD_FILE, path.trim()).apply()
+    }
+
+    fun getPorcupineEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_PORCUPINE_ENABLED, true)
+    }
+
+    fun setPorcupineEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_PORCUPINE_ENABLED, enabled).apply()
+    }
+
+    fun getPorcupineSensitivity(context: Context): Float {
+        return getPrefs(context).getFloat(KEY_PORCUPINE_SENSITIVITY, 0.70f)
+    }
+
+    fun setPorcupineSensitivity(context: Context, sensitivity: Float) {
+        val clamped = sensitivity.coerceIn(0.0f, 1.0f)
+        getPrefs(context).edit().putFloat(KEY_PORCUPINE_SENSITIVITY, clamped).apply()
     }
 
     fun getAutoUnlockPin(context: Context): String {
