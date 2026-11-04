@@ -62,9 +62,8 @@ object MayaSpeaker {
                     // Select the best natural female voice from available voices
                     selectBestFemaleVoice()
 
-                    // Sweet, natural, warm, affectionate pitch & pace
-                    tts?.setPitch(1.05f)
-                    tts?.setSpeechRate(0.96f)
+                    // Apply voice persona, pitch & speed
+                    appContext?.let { applyVoiceSettings(it) }
 
                     tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {
@@ -160,6 +159,40 @@ object MayaSpeaker {
     }
 
     /**
+     * Applies voice pitch, speech rate, and persona dynamically based on UserSettingsManager
+     */
+    fun applyVoiceSettings(context: Context) {
+        val voiceName = com.example.settings.UserSettingsManager.getVoiceName(context)
+        val userSpeed = com.example.settings.UserSettingsManager.getSpeechSpeed(context)
+
+        val pitch = when (voiceName.lowercase()) {
+            "kore", "damdaar" -> 0.92f
+            "leda", "jawaan" -> 1.14f
+            "zephyr", "chamakdaar" -> 1.06f
+            "laomedeia", "josheeli" -> 1.12f
+            "despina", "mulaayam" -> 1.02f
+            "erinome", "saaf" -> 1.00f
+            "callirrhoe", "befikar" -> 1.06f
+            "gacrux", "mature" -> 0.90f
+            "pulcherrima", "bebaak" -> 1.10f
+            "sulafat", "garmjoshi bhari" -> 1.04f
+            "vindemiatrix", "komal" -> 1.03f
+            else -> 1.05f // Aoede / Halki-phulki
+        }
+
+        val rate = when (voiceName.lowercase()) {
+            "despina", "mulaayam", "vindemiatrix", "komal", "gacrux" -> (userSpeed * 0.94f)
+            "leda", "jawaan", "laomedeia", "josheeli" -> (userSpeed * 1.03f)
+            else -> userSpeed
+        }
+
+        try {
+            tts?.setPitch(pitch)
+            tts?.setSpeechRate(rate)
+        } catch (_: Exception) {}
+    }
+
+    /**
      * Cleans text before speaking to eliminate emojis, symbols, and artifacts.
      * Prevents Android TTS from literally pronouncing "दिल", "लाल दिल", or symbol names!
      */
@@ -190,6 +223,21 @@ object MayaSpeaker {
     }
 
     fun speak(
+        context: Context,
+        text: String,
+        flush: Boolean = true,
+        onDone: (() -> Unit)? = null
+    ) {
+        if (!isInitialized || tts == null) {
+            init(context) {
+                speak(text, flush, onDone)
+            }
+        } else {
+            speak(text, flush, onDone)
+        }
+    }
+
+    fun speak(
         text: String,
         flush: Boolean = true,
         onDone: (() -> Unit)? = null
@@ -211,6 +259,8 @@ object MayaSpeaker {
             onDone?.invoke()
             return
         }
+
+        appContext?.let { applyVoiceSettings(it) }
 
         onSpeechDoneCallback = onDone
 

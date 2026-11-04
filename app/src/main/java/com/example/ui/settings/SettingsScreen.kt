@@ -53,6 +53,26 @@ sealed class SettingsSubScreen {
     data object Connections : SettingsSubScreen()
     data object PrivacyAndAbout : SettingsSubScreen()
     data object PorcupineWakeWord : SettingsSubScreen()
+    // Video Requested Sub-Screens:
+    data object Personal : SettingsSubScreen()
+    data object MayaAssistant : SettingsSubScreen()
+    data object VoiceEngine : SettingsSubScreen()
+    data object VoiceGuardian : SettingsSubScreen()
+    data object SecretSettings : SettingsSubScreen()
+    data object SkillsStore : SettingsSubScreen()
+    data object SubAgents : SettingsSubScreen()
+    data object EmailSettings : SettingsSubScreen()
+    data object SocialMedia : SettingsSubScreen()
+    data object BackupSettings : SettingsSubScreen()
+    data object MayaRules : SettingsSubScreen()
+    data object AdvancedHub : SettingsSubScreen()
+    data object ThemeSettings : SettingsSubScreen()
+    data object AppearanceSettings : SettingsSubScreen()
+    data object BehaviourSettings : SettingsSubScreen()
+    data object TypingSettings : SettingsSubScreen()
+    data object ChehreFace : SettingsSubScreen()
+    data object EmergencySos : SettingsSubScreen()
+    data object EventTriggers : SettingsSubScreen()
 }
 
 @Composable
@@ -64,10 +84,16 @@ fun FullSettingsContainer(
     var currentSubScreen by remember { mutableStateOf<SettingsSubScreen>(SettingsSubScreen.Hub) }
 
     BackHandler {
-        if (currentSubScreen != SettingsSubScreen.Hub) {
-            currentSubScreen = SettingsSubScreen.Hub
-        } else {
-            onDismiss()
+        when (currentSubScreen) {
+            is SettingsSubScreen.Hub -> onDismiss()
+            is SettingsSubScreen.ThemeSettings,
+            is SettingsSubScreen.AppearanceSettings,
+            is SettingsSubScreen.BehaviourSettings,
+            is SettingsSubScreen.TypingSettings,
+            is SettingsSubScreen.ChehreFace,
+            is SettingsSubScreen.EmergencySos,
+            is SettingsSubScreen.EventTriggers -> currentSubScreen = SettingsSubScreen.AdvancedHub
+            else -> currentSubScreen = SettingsSubScreen.Hub
         }
     }
 
@@ -86,7 +112,19 @@ fun FullSettingsContainer(
                     onNavigateToPhoneControl = { currentSubScreen = SettingsSubScreen.PhoneControl },
                     onNavigateToConnections = { currentSubScreen = SettingsSubScreen.Connections },
                     onNavigateToPrivacy = { currentSubScreen = SettingsSubScreen.PrivacyAndAbout },
-                    onNavigateToPorcupine = { currentSubScreen = SettingsSubScreen.PorcupineWakeWord }
+                    onNavigateToPorcupine = { currentSubScreen = SettingsSubScreen.PorcupineWakeWord },
+                    onNavigateToPersonal = { currentSubScreen = SettingsSubScreen.Personal },
+                    onNavigateToMayaAssistant = { currentSubScreen = SettingsSubScreen.MayaAssistant },
+                    onNavigateToVoiceEngine = { currentSubScreen = SettingsSubScreen.VoiceEngine },
+                    onNavigateToVoiceGuardian = { currentSubScreen = SettingsSubScreen.VoiceGuardian },
+                    onNavigateToSecret = { currentSubScreen = SettingsSubScreen.SecretSettings },
+                    onNavigateToSkills = { currentSubScreen = SettingsSubScreen.SkillsStore },
+                    onNavigateToSubAgents = { currentSubScreen = SettingsSubScreen.SubAgents },
+                    onNavigateToEmail = { currentSubScreen = SettingsSubScreen.EmailSettings },
+                    onNavigateToSocial = { currentSubScreen = SettingsSubScreen.SocialMedia },
+                    onNavigateToBackup = { currentSubScreen = SettingsSubScreen.BackupSettings },
+                    onNavigateToRules = { currentSubScreen = SettingsSubScreen.MayaRules },
+                    onNavigateToAdvancedHub = { currentSubScreen = SettingsSubScreen.AdvancedHub }
                 )
             }
             is SettingsSubScreen.VoiceAndLanguage -> {
@@ -120,6 +158,109 @@ fun FullSettingsContainer(
                     onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
                 )
             }
+            is SettingsSubScreen.Personal -> {
+                PersonalSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.MayaAssistant -> {
+                MayaAssistantSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.VoiceEngine -> {
+                VoiceEngineView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.VoiceGuardian -> {
+                VoiceGuardianScreen(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.SecretSettings -> {
+                SecretSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.SkillsStore -> {
+                SkillsStoreView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.SubAgents -> {
+                SubAgentsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.EmailSettings -> {
+                EmailSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.SocialMedia -> {
+                SocialMediaSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.BackupSettings -> {
+                BackupSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.MayaRules -> {
+                MayaRulesView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub }
+                )
+            }
+            is SettingsSubScreen.AdvancedHub -> {
+                AdvancedSettingsHubView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.Hub },
+                    onNavigateToVoiceGuardian = { currentSubScreen = SettingsSubScreen.VoiceGuardian },
+                    onNavigateToTheme = { currentSubScreen = SettingsSubScreen.ThemeSettings },
+                    onNavigateToAppearance = { currentSubScreen = SettingsSubScreen.AppearanceSettings },
+                    onNavigateToBehaviour = { currentSubScreen = SettingsSubScreen.BehaviourSettings },
+                    onNavigateToTyping = { currentSubScreen = SettingsSubScreen.TypingSettings },
+                    onNavigateToFaceId = { currentSubScreen = SettingsSubScreen.ChehreFace },
+                    onNavigateToSos = { currentSubScreen = SettingsSubScreen.EmergencySos },
+                    onNavigateToEventTriggers = { currentSubScreen = SettingsSubScreen.EventTriggers }
+                )
+            }
+            is SettingsSubScreen.ThemeSettings -> {
+                ThemeSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.AppearanceSettings -> {
+                AppearanceSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.BehaviourSettings -> {
+                BehaviourSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.TypingSettings -> {
+                TypingSettingsView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.ChehreFace -> {
+                ChehreFaceView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.EmergencySos -> {
+                EmergencySosView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
+            is SettingsSubScreen.EventTriggers -> {
+                EventTriggersView(
+                    onNavigateBack = { currentSubScreen = SettingsSubScreen.AdvancedHub }
+                )
+            }
         }
     }
 }
@@ -136,14 +277,28 @@ fun SettingsHubView(
     onNavigateToPhoneControl: () -> Unit,
     onNavigateToConnections: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
-    onNavigateToPorcupine: () -> Unit = {}
+    onNavigateToPorcupine: () -> Unit = {},
+    onNavigateToPersonal: () -> Unit = {},
+    onNavigateToMayaAssistant: () -> Unit = {},
+    onNavigateToVoiceEngine: () -> Unit = {},
+    onNavigateToVoiceGuardian: () -> Unit = {},
+    onNavigateToSecret: () -> Unit = {},
+    onNavigateToSkills: () -> Unit = {},
+    onNavigateToSubAgents: () -> Unit = {},
+    onNavigateToEmail: () -> Unit = {},
+    onNavigateToSocial: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
+    onNavigateToRules: () -> Unit = {},
+    onNavigateToAdvancedHub: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val voiceName = remember { UserSettingsManager.getVoiceName(context) }
+    val voiceName = remember { UserSettingsManager.getVoicePersona(context) }
     val language = remember { UserSettingsManager.getLanguage(context) }
     val speechSpeed = remember { UserSettingsManager.getSpeechSpeed(context) }
     val savedMemoriesCount by MayaMemoryManager.memoriesFlow.collectAsState()
     val savedChatsCount by MayaMemoryManager.chatHistoryFlow.collectAsState()
+    val isOwnerEnrolled = com.example.guardian.VoiceGuardianManager.isOwnerEnrolled(context)
+    val isGuardianActive = com.example.guardian.VoiceGuardianManager.isGuardianEnabled(context)
 
     Column(
         modifier = Modifier
@@ -191,8 +346,8 @@ fun SettingsHubView(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Customize your AI experience",
-                    color = Color(0xFFB3A8D6),
+                    text = "Complete Free & Unlocked AI Suite",
+                    color = Color(0xFF00E5FF),
                     fontSize = 13.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -246,53 +401,59 @@ fun SettingsHubView(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // Card 1: Maya AI Info
-        SettingsHeroCard(
-            icon = Icons.Default.KeyboardArrowUp,
-            iconTint = Color(0xFFC084FC),
-            iconBg = Color(0xFF381A66),
-            title = "Maya AI",
-            subtitle = "Your Personal AI Assistant\nv2.0 (New Video Build)\nMade in India 🇮🇳",
-            onClick = onNavigateToPrivacy
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Card 2: Join Community
-        SettingsHeroCard(
-            icon = Icons.AutoMirrored.Filled.Send,
-            iconTint = Color(0xFFFF4081),
-            iconBg = Color(0xFF52133B),
-            title = "Join community",
-            subtitle = null,
-            onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/"))
-                try { context.startActivity(intent) } catch (_: Exception) {
-                    Toast.makeText(context, "Community link: Telegram / AI Studio", Toast.LENGTH_SHORT).show()
+        // SPECIAL FEATURE: VOICE GUARDIAN ("मालिक की आवाज़ पहचानने का फीचर")
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToVoiceGuardian() },
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFF14172B),
+            border = BorderStroke(1.5.dp, Brush.horizontalGradient(listOf(Color(0xFF00E5FF), Color(0xFFFF007F))))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0xFF2563EB))), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.RecordVoiceOver, contentDescription = null, tint = Color.Black)
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Voice Guardian", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isGuardianActive) Color(0xFF10B981) else Color(0xFF64748B)
+                        ) {
+                            Text(
+                                if (isGuardianActive) "ON ✓" else "OFF",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        if (isOwnerEnrolled) "मालिक की आवाज एनरोल है (Match test ready)" else "मालिक की आवाज रिकॉर्ड करें ताकि सिर्फ आपकी सुने",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 11.sp
+                    )
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.LightGray)
             }
-        )
+        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Card 3: Watch Setup Video
-        SettingsHeroCard(
-            icon = Icons.Default.PlayArrow,
-            iconTint = Color.White,
-            iconBg = Color(0xFFE50914),
-            title = "Watch the setup video",
-            subtitle = "API keys, permissions and Accessibility, step by step",
-            onClick = {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://youtube.com"))
-                try { context.startActivity(intent) } catch (_: Exception) {}
-            }
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Section: ✨ AI SETTINGS
-        SectionHeader(title = "AI SETTINGS", subtitle = "Configure your AI assistant")
-
+        // Section: 👤 PERSONAL & ASSISTANT SETTINGS
+        SectionHeader(title = "CORE SETTINGS", subtitle = "व्यक्तिगत और माया की मुख्य सेटिंग्स")
         Spacer(modifier = Modifier.height(8.dp))
 
         Card(
@@ -303,30 +464,105 @@ fun SettingsHubView(
         ) {
             Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 SettingsListItem(
-                    icon = Icons.Default.Key,
-                    iconBg = Color(0xFF6B21A8),
-                    title = "Connections",
-                    subtitle = "Gemini and Groq keys",
-                    badge = "Ready",
-                    onClick = onNavigateToConnections
+                    icon = Icons.Default.Person,
+                    iconBg = Color(0xFF2563EB),
+                    title = "Personal",
+                    subtitle = "${UserSettingsManager.getUserName(context)} · ${UserSettingsManager.getUserGender(context)} · ${UserSettingsManager.getPreferredMusicApp(context)}",
+                    badge = null,
+                    onClick = onNavigateToPersonal
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsListItem(
-                    icon = Icons.Default.RecordVoiceOver,
+                    icon = Icons.Default.Face,
+                    iconBg = Color(0xFFFF007F),
+                    title = "Maya",
+                    subtitle = "12 Awaazein · Reels Auto-Scroll · Persona",
+                    badge = voiceName,
+                    onClick = onNavigateToMayaAssistant
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsListItem(
+                    icon = Icons.Default.GraphicEq,
                     iconBg = Color(0xFF7E22CE),
-                    title = "Voice & language",
-                    subtitle = "$voiceName · $language · ${speechSpeed}x",
-                    badge = null,
-                    onClick = onNavigateToVoiceAndLang
+                    title = "Voice Engine",
+                    subtitle = "${UserSettingsManager.getVoiceEngineMode(context)} · ${UserSettingsManager.getVoiceEngineModel(context)}",
+                    badge = "Beta 🔥",
+                    onClick = onNavigateToVoiceEngine
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsListItem(
-                    icon = Icons.Outlined.ChatBubble,
-                    iconBg = Color(0xFF9333EA),
-                    title = "Chats & memory",
-                    subtitle = "${savedChatsCount.size} saved chats · ${savedMemoriesCount.size} yaadein",
+                    icon = Icons.Default.Lock,
+                    iconBg = Color(0xFFEF4444),
+                    title = "Secret Settings",
+                    subtitle = "Friendly · Romantic · Intense (18+ Private GF Mode)",
+                    badge = UserSettingsManager.getSecretMode(context),
+                    onClick = onNavigateToSecret
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Section: 📦 SKILLS, AGENTS & RULES
+        SectionHeader(title = "INTELLIGENCE & SKILLS", subtitle = "टूल्स, सब-एजेंट्स और कस्टम रूल्स")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                SettingsListItem(
+                    icon = Icons.Default.Extension,
+                    iconBg = Color(0xFF00E5FF),
+                    title = "Skills Store",
+                    subtitle = "8 Working Tools: WhatsApp, Insta, YouTube, Calls...",
+                    badge = "8 Active",
+                    onClick = onNavigateToSkills
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsListItem(
+                    icon = Icons.Default.SmartToy,
+                    iconBg = Color(0xFF10B981),
+                    title = "Sub-Agents",
+                    subtitle = "Gemini 1.5, Claude 3.5, DeepSeek V3, Whisper",
                     badge = null,
-                    onClick = onNavigateToMemories
+                    onClick = onNavigateToSubAgents
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsListItem(
+                    icon = Icons.Default.Rule,
+                    iconBg = Color(0xFFF59E0B),
+                    title = "Maya ke Rules",
+                    subtitle = "+ नया नियम जोड़ें (Custom instructions for Maya)",
+                    badge = null,
+                    onClick = onNavigateToRules
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Section: ⚙️ ADVANCED & SYSTEM
+        SectionHeader(title = "ADVANCED SYSTEM", subtitle = "थीम्स, फेस आईडी, SOS, 16 इवेंट ट्रिगर्स")
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
+            border = BorderStroke(1.dp, Color(0xFF281E4B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                SettingsListItem(
+                    icon = Icons.Default.SettingsSuggest,
+                    iconBg = Color(0xFF8B5CF6),
+                    title = "Advanced Settings Hub",
+                    subtitle = "Themes · 3D Avatar · Face ID · SOS · 16 Event Triggers",
+                    badge = "Deep Control",
+                    onClick = onNavigateToAdvancedHub
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
                 val isPorcupineActive = UserSettingsManager.getPorcupineEnabled(context)
@@ -335,71 +571,51 @@ fun SettingsHubView(
                     icon = Icons.Default.Hearing,
                     iconBg = Color(0xFF2563EB),
                     title = "Porcupine Wake Word",
-                    subtitle = if (isPorcupineActive) "Detection ON • Sensitivity: $currentSensPercent% • 0% Battery" else "Detection OFF • Built-in acoustic fallback",
+                    subtitle = if (isPorcupineActive) "Detection ON • Sensitivity: $currentSensPercent%" else "Detection OFF • Built-in acoustic fallback",
                     badge = if (isPorcupineActive) "$currentSensPercent%" else "OFF",
                     onClick = onNavigateToPorcupine
                 )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Section: ⚙️ APP SETTINGS
-        SectionHeader(title = "APP SETTINGS", subtitle = "Appearance and behavior")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
-            border = BorderStroke(1.dp, Color(0xFF281E4B)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                val edgeLightOn = UserSettingsManager.getEdgeLightEnabled(context)
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsListItem(
-                    icon = Icons.Default.Palette,
-                    iconBg = Color(0xFF6B21A8),
-                    title = "Look & feel",
-                    subtitle = if (edgeLightOn) "System · Classic orb · Edge light ON" else "System · Classic orb · Battery saver (Edge light OFF)",
+                    icon = Icons.Default.Email,
+                    iconBg = Color(0xFF3B82F6),
+                    title = "Email (SMTP)",
+                    subtitle = "आवाज से डायरेक्ट ईमेल भेजने की सेटिंग्स",
                     badge = null,
-                    onClick = onNavigateToLookAndFeel
+                    onClick = onNavigateToEmail
                 )
                 HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
-                val isAcc = MayaAccessibilityService.isServiceRunning()
                 SettingsListItem(
-                    icon = Icons.Default.PhoneAndroid,
-                    iconBg = Color(0xFF7E22CE),
-                    title = "Phone control",
-                    subtitle = if (isAcc) "100% Control Active ✅" else "Quick actions and permissions",
-                    badge = if (isAcc) "Active" else null,
-                    onClick = onNavigateToPhoneControl
+                    icon = Icons.Default.Share,
+                    iconBg = Color(0xFFEC4899),
+                    title = "Social Media",
+                    subtitle = "Instagram @handle, ऑटो-कैप्शन्स और स्टोरीज",
+                    badge = null,
+                    onClick = onNavigateToSocial
+                )
+                HorizontalDivider(color = Color.White.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                SettingsListItem(
+                    icon = Icons.Default.CloudSync,
+                    iconBg = Color(0xFF06B6D4),
+                    title = "Backup & Restore",
+                    subtitle = "${savedChatsCount.size} चैट्स · ${savedMemoriesCount.size} यादें एक्सपोर्ट/रीस्टोर करें",
+                    badge = null,
+                    onClick = onNavigateToBackup
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Section: ℹ️ ABOUT
-        SectionHeader(title = "ABOUT", subtitle = "App information and support")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF140F27)),
-            border = BorderStroke(1.dp, Color(0xFF281E4B)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            SettingsListItem(
-                icon = Icons.Default.Shield,
-                iconBg = Color(0xFF581C87),
-                title = "Privacy & about",
-                subtitle = "Your data, version, support",
-                badge = null,
-                onClick = onNavigateToPrivacy
-            )
-        }
+        // Card: Maya AI Info & About
+        SettingsHeroCard(
+            icon = Icons.Default.Shield,
+            iconTint = Color(0xFFC084FC),
+            iconBg = Color(0xFF381A66),
+            title = "Privacy & About Maya AI",
+            subtitle = "v2.8 Free Open-Source Edition • 100% On-Device & Safe\nNo Paid Licenses • No Trial Locks 🇮🇳",
+            onClick = onNavigateToPrivacy
+        )
 
         Spacer(modifier = Modifier.height(26.dp))
     }

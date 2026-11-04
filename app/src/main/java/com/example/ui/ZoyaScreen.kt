@@ -222,7 +222,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                         border = BorderStroke(1.dp, Color(0xFF00E5FF).copy(alpha = 0.6f))
                     ) {
                         Text(
-                            text = "● NEW BUILD v2.7 (Porcupine Wake Word & Sensitivity)",
+                            text = "● NEW BUILD v2.8 (Voice Guardian & All Features Unlocked)",
                             color = Color(0xFF00E5FF),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
@@ -319,7 +319,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "NEW UPDATE v2.5 ACTIVE",
+                                "NEW UPDATE v2.8 ACTIVE",
                                 color = Color(0xFF00E5FF),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 12.sp
@@ -330,7 +330,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "WHATSAPP AUTO-SEND & SWEET VOICE",
+                                    "VOICE GUARDIAN & 100% UNLOCKED",
                                     color = Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
@@ -339,7 +339,7 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                             }
                         }
                         Text(
-                            "Auto-Send WhatsApp • Crash-Free Instagram • Sweet Natural Voice • Auto Unlock",
+                            "Voice Guardian (मालिक की आवाज) • 12 Awaazein • 8 Working Skills • No Dummy Buttons",
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 10.sp
                         )

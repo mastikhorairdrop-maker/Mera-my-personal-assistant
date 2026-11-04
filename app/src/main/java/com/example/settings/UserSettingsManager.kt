@@ -312,4 +312,443 @@ object UserSettingsManager {
     fun setChargingAnnouncementEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean("charging_announcement_enabled", enabled).apply()
     }
+
+    fun getUserGender(context: Context): String {
+        return getPrefs(context).getString("user_gender", "Ladka") ?: "Ladka"
+    }
+
+    fun setUserGender(context: Context, gender: String) {
+        getPrefs(context).edit().putString("user_gender", gender).apply()
+    }
+
+    fun getUserPhone(context: Context): String {
+        return getPrefs(context).getString("user_phone", "") ?: ""
+    }
+
+    fun setUserPhone(context: Context, phone: String) {
+        getPrefs(context).edit().putString("user_phone", phone.trim()).apply()
+    }
+
+    fun getDefaultMusicApp(context: Context): String {
+        return getPrefs(context).getString("default_music_app", "YouTube") ?: "YouTube"
+    }
+
+    fun setDefaultMusicApp(context: Context, app: String) {
+        getPrefs(context).edit().putString("default_music_app", app).apply()
+    }
+
+    fun getFavoriteSong(context: Context): String {
+        return getPrefs(context).getString("favorite_song", "Kesariya") ?: "Kesariya"
+    }
+
+    fun setFavoriteSong(context: Context, song: String) {
+        getPrefs(context).edit().putString("favorite_song", song.trim()).apply()
+    }
+
+    fun getVoiceEngineMode(context: Context): String {
+        return getPrefs(context).getString("voice_engine_mode", "Normal mode") ?: "Normal mode"
+    }
+
+    fun setVoiceEngineMode(context: Context, mode: String) {
+        getPrefs(context).edit().putString("voice_engine_mode", mode).apply()
+    }
+
+    fun getVoiceEngineModel(context: Context): String {
+        return getPrefs(context).getString("voice_engine_model", "Maya Swift") ?: "Maya Swift"
+    }
+
+    fun setVoiceEngineModel(context: Context, model: String) {
+        getPrefs(context).edit().putString("voice_engine_model", model).apply()
+    }
+
+    fun getSecretMode(context: Context): String {
+        return getPrefs(context).getString("secret_mode", "Romantic") ?: "Romantic"
+    }
+
+    fun setSecretMode(context: Context, mode: String) {
+        getPrefs(context).edit().putString("secret_mode", mode).apply()
+    }
+
+    fun getAutoScrollReels(context: Context): Boolean {
+        return getPrefs(context).getBoolean("auto_scroll_reels", true)
+    }
+
+    fun setAutoScrollReels(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("auto_scroll_reels", enabled).apply()
+    }
+
+    fun getCallAnnouncementEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("call_announcement_enabled", true)
+    }
+
+    fun setCallAnnouncementEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("call_announcement_enabled", enabled).apply()
+    }
+
+    fun getCallLoudspeakerEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("call_loudspeaker_enabled", false)
+    }
+
+    fun setCallLoudspeakerEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("call_loudspeaker_enabled", enabled).apply()
+    }
+
+    fun getDrivingModeEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("driving_mode_enabled", false)
+    }
+
+    fun setDrivingModeEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("driving_mode_enabled", enabled).apply()
+    }
+
+    fun getDrivingAutoReplyText(context: Context): String {
+        return getPrefs(context).getString("driving_auto_reply_text", "{name} abhi drive kar rahe hain, isliye call nahi utha paye. Free hote hi call back karenge. - Maya") 
+            ?: "{name} abhi drive kar rahe hain, isliye call nahi utha paye. Free hote hi call back karenge. - Maya"
+    }
+
+    fun setDrivingAutoReplyText(context: Context, text: String) {
+        getPrefs(context).edit().putString("driving_auto_reply_text", text).apply()
+    }
+
+    fun getStandbyTimerMinutes(context: Context): Int {
+        return getPrefs(context).getInt("standby_timer_minutes", 10)
+    }
+
+    fun setStandbyTimerMinutes(context: Context, minutes: Int) {
+        getPrefs(context).edit().putInt("standby_timer_minutes", minutes).apply()
+    }
+
+    fun getEmailAddress(context: Context): String {
+        return getPrefs(context).getString("email_address", "") ?: ""
+    }
+
+    fun setEmailAddress(context: Context, email: String) {
+        getPrefs(context).edit().putString("email_address", email.trim()).apply()
+    }
+
+    fun getEmailAppPassword(context: Context): String {
+        return getPrefs(context).getString("email_app_password", "") ?: ""
+    }
+
+    fun setEmailAppPassword(context: Context, pass: String) {
+        getPrefs(context).edit().putString("email_app_password", pass.trim()).apply()
+    }
+
+    fun getEmailSenderName(context: Context): String {
+        return getPrefs(context).getString("email_sender_name", "") ?: ""
+    }
+
+    fun setEmailSenderName(context: Context, name: String) {
+        getPrefs(context).edit().putString("email_sender_name", name.trim()).apply()
+    }
+
+    fun getEmailSignature(context: Context): String {
+        return getPrefs(context).getString("email_signature", "Regards,\nMaya AI") ?: "Regards,\nMaya AI"
+    }
+
+    fun setEmailSignature(context: Context, sig: String) {
+        getPrefs(context).edit().putString("email_signature", sig).apply()
+    }
+
+    fun getEmailServer(context: Context): String {
+        return getPrefs(context).getString("email_server", "smtp.gmail.com") ?: "smtp.gmail.com"
+    }
+
+    fun setEmailServer(context: Context, server: String) {
+        getPrefs(context).edit().putString("email_server", server.trim()).apply()
+    }
+
+    fun getEmailPort(context: Context): String {
+        return getPrefs(context).getString("email_port", "465") ?: "465"
+    }
+
+    fun setEmailPort(context: Context, port: String) {
+        getPrefs(context).edit().putString("email_port", port.trim()).apply()
+    }
+
+    fun getSocialHandle(context: Context): String {
+        return getPrefs(context).getString("social_handle", "") ?: ""
+    }
+
+    fun setSocialHandle(context: Context, handle: String) {
+        getPrefs(context).edit().putString("social_handle", handle.trim()).apply()
+    }
+
+    fun getSocialPlatform(context: Context): String {
+        return getPrefs(context).getString("social_platform", "Instagram") ?: "Instagram"
+    }
+
+    fun setSocialPlatform(context: Context, platform: String) {
+        getPrefs(context).edit().putString("social_platform", platform).apply()
+    }
+
+    fun getDailyStoryEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("daily_story_enabled", true)
+    }
+
+    fun setDailyStoryEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("daily_story_enabled", enabled).apply()
+    }
+
+    fun getThemeName(context: Context): String {
+        return getPrefs(context).getString("theme_name", "Clay Day") ?: "Clay Day"
+    }
+
+    fun setThemeName(context: Context, theme: String) {
+        getPrefs(context).edit().putString("theme_name", theme).apply()
+    }
+
+    fun get3DCharacterName(context: Context): String {
+        return getPrefs(context).getString("3d_character_name", "Maya") ?: "Maya"
+    }
+
+    fun set3DCharacterName(context: Context, name: String) {
+        getPrefs(context).edit().putString("3d_character_name", name).apply()
+    }
+
+    fun getCustomRules(context: Context): List<String> {
+        val raw = getPrefs(context).getString("custom_rules_csv", "keep answers short,call me dost,never open WhatsApp without asking") ?: ""
+        return if (raw.isBlank()) emptyList() else raw.split("||")
+    }
+
+    fun setCustomRules(context: Context, rules: List<String>) {
+        getPrefs(context).edit().putString("custom_rules_csv", rules.joinToString("||")).apply()
+    }
+
+    fun addCustomRule(context: Context, rule: String) {
+        val current = getCustomRules(context).toMutableList()
+        if (rule.isNotBlank() && !current.contains(rule.trim())) {
+            current.add(rule.trim())
+            setCustomRules(context, current)
+        }
+    }
+
+    fun removeCustomRule(context: Context, rule: String) {
+        val current = getCustomRules(context).toMutableList()
+        current.remove(rule.trim())
+        setCustomRules(context, current)
+    }
+
+    fun getVoicePersona(context: Context): String {
+        return getPrefs(context).getString("voice_persona", "Aoede") ?: "Aoede"
+    }
+
+    fun setVoicePersona(context: Context, persona: String) {
+        getPrefs(context).edit().putString("voice_persona", persona).apply()
+    }
+
+    fun getPreferredMusicApp(context: Context): String {
+        return getPrefs(context).getString("preferred_music_app", "YouTube") ?: "YouTube"
+    }
+
+    fun setPreferredMusicApp(context: Context, app: String) {
+        getPrefs(context).edit().putString("preferred_music_app", app).apply()
+    }
+
+    fun getGeminiApiKey(context: Context): String {
+        return getPrefs(context).getString("gemini_user_api_key", "") ?: ""
+    }
+
+    fun setGeminiApiKey(context: Context, key: String) {
+        getPrefs(context).edit().putString("gemini_user_api_key", key.trim()).apply()
+    }
+
+    fun getYoutubeApiKey(context: Context): String {
+        return getPrefs(context).getString("youtube_user_api_key", "") ?: ""
+    }
+
+    fun setYoutubeApiKey(context: Context, key: String) {
+        getPrefs(context).edit().putString("youtube_user_api_key", key.trim()).apply()
+    }
+
+    fun getCallAnnouncements(context: Context): Boolean {
+        return getPrefs(context).getBoolean("call_announcements", true)
+    }
+
+    fun setCallAnnouncements(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("call_announcements", enabled).apply()
+    }
+
+    fun getDrivingModeAutoReply(context: Context): Boolean {
+        return getPrefs(context).getBoolean("driving_mode_auto_reply", true)
+    }
+
+    fun setDrivingModeAutoReply(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("driving_mode_auto_reply", enabled).apply()
+    }
+
+    fun getVoicePitch(context: Context): Float {
+        return getPrefs(context).getFloat("voice_pitch", 1.15f)
+    }
+
+    fun setVoicePitch(context: Context, pitch: Float) {
+        getPrefs(context).edit().putFloat("voice_pitch", pitch).apply()
+    }
+
+    fun getSecretModeLocked(context: Context): Boolean {
+        return getPrefs(context).getBoolean("secret_mode_locked", false)
+    }
+
+    fun setSecretModeLocked(context: Context, locked: Boolean) {
+        getPrefs(context).edit().putBoolean("secret_mode_locked", locked).apply()
+    }
+
+    fun getInstalledSkills(context: Context): Set<String> {
+        return getPrefs(context).getStringSet("installed_skills", setOf(
+            "skill_whatsapp", "skill_instagram", "skill_youtube", "skill_telephony",
+            "skill_files", "skill_research", "skill_coding", "skill_system"
+        )) ?: emptySet()
+    }
+
+    fun setInstalledSkills(context: Context, skills: Set<String>) {
+        getPrefs(context).edit().putStringSet("installed_skills", skills).apply()
+    }
+
+    fun getActiveSubAgents(context: Context): Set<String> {
+        return getPrefs(context).getStringSet("active_sub_agents", setOf(
+            "agent_gemini", "agent_claude", "agent_deepseek", "agent_whisper"
+        )) ?: emptySet()
+    }
+
+    fun setActiveSubAgents(context: Context, agents: Set<String>) {
+        getPrefs(context).edit().putStringSet("active_sub_agents", agents).apply()
+    }
+
+    fun getSmtpEmail(context: Context): String {
+        return getPrefs(context).getString("smtp_email", "") ?: ""
+    }
+
+    fun setSmtpEmail(context: Context, email: String) {
+        getPrefs(context).edit().putString("smtp_email", email.trim()).apply()
+    }
+
+    fun getSmtpPassword(context: Context): String {
+        return getPrefs(context).getString("smtp_password", "") ?: ""
+    }
+
+    fun setSmtpPassword(context: Context, pass: String) {
+        getPrefs(context).edit().putString("smtp_password", pass).apply()
+    }
+
+    fun getSmtpHost(context: Context): String {
+        return getPrefs(context).getString("smtp_host", "smtp.gmail.com") ?: "smtp.gmail.com"
+    }
+
+    fun setSmtpHost(context: Context, host: String) {
+        getPrefs(context).edit().putString("smtp_host", host.trim()).apply()
+    }
+
+    fun getSmtpPort(context: Context): Int {
+        return getPrefs(context).getInt("smtp_port", 587)
+    }
+
+    fun setSmtpPort(context: Context, port: Int) {
+        getPrefs(context).edit().putInt("smtp_port", port).apply()
+    }
+
+    fun getCaptionStyle(context: Context): String {
+        return getPrefs(context).getString("caption_style", "Poetic / Shayarana") ?: "Poetic / Shayarana"
+    }
+
+    fun setCaptionStyle(context: Context, style: String) {
+        getPrefs(context).edit().putString("caption_style", style).apply()
+    }
+
+    fun getAutoDailyStory(context: Context): Boolean {
+        return getPrefs(context).getBoolean("auto_daily_story", true)
+    }
+
+    fun setAutoDailyStory(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("auto_daily_story", enabled).apply()
+    }
+
+    fun getThemeMode(context: Context): String {
+        return getPrefs(context).getString("theme_mode", "neon") ?: "neon"
+    }
+
+    fun setThemeMode(context: Context, mode: String) {
+        getPrefs(context).edit().putString("theme_mode", mode).apply()
+    }
+
+    fun getAppearanceType(context: Context): String {
+        return getPrefs(context).getString("appearance_type", "orb") ?: "orb"
+    }
+
+    fun setAppearanceType(context: Context, type: String) {
+        getPrefs(context).edit().putString("appearance_type", type).apply()
+    }
+
+    fun getEchoGuard(context: Context): Boolean {
+        return getPrefs(context).getBoolean("echo_guard", true)
+    }
+
+    fun setEchoGuard(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("echo_guard", enabled).apply()
+    }
+
+    fun getFloatingBubble(context: Context): Boolean {
+        return getPrefs(context).getBoolean("floating_bubble", false)
+    }
+
+    fun setFloatingBubble(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("floating_bubble", enabled).apply()
+    }
+
+    fun getHapticsEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("haptics_enabled", true)
+    }
+
+    fun setHapticsEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("haptics_enabled", enabled).apply()
+    }
+
+    fun getTextStreamSpeed(context: Context): String {
+        return getPrefs(context).getString("text_stream_speed", "Fast (तेज)") ?: "Fast (तेज)"
+    }
+
+    fun setTextStreamSpeed(context: Context, speed: String) {
+        getPrefs(context).edit().putString("text_stream_speed", speed).apply()
+    }
+
+    fun getFaceEnrolled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("face_enrolled", false)
+    }
+
+    fun setFaceEnrolled(context: Context, enrolled: Boolean) {
+        getPrefs(context).edit().putBoolean("face_enrolled", enrolled).apply()
+    }
+
+    fun getSosContact(context: Context): String {
+        return getPrefs(context).getString("sos_contact", "112") ?: "112"
+    }
+
+    fun setSosContact(context: Context, contact: String) {
+        getPrefs(context).edit().putString("sos_contact", contact.trim()).apply()
+    }
+
+    fun getSosTriggerWord(context: Context): String {
+        return getPrefs(context).getString("sos_trigger_word", "Maya Bachao") ?: "Maya Bachao"
+    }
+
+    fun setSosTriggerWord(context: Context, word: String) {
+        getPrefs(context).edit().putString("sos_trigger_word", word.trim()).apply()
+    }
+
+    fun getSosSirenEnabled(context: Context): Boolean {
+        return getPrefs(context).getBoolean("sos_siren_enabled", true)
+    }
+
+    fun setSosSirenEnabled(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean("sos_siren_enabled", enabled).apply()
+    }
+
+    fun getActiveEventTriggers(context: Context): Set<String> {
+        return getPrefs(context).getStringSet("active_event_triggers", setOf(
+            "trig_charger_in", "trig_batt_low", "trig_screen_on", "trig_morning", "trig_night"
+        )) ?: emptySet()
+    }
+
+    fun setActiveEventTriggers(context: Context, triggers: Set<String>) {
+        getPrefs(context).edit().putStringSet("active_event_triggers", triggers).apply()
+    }
 }
