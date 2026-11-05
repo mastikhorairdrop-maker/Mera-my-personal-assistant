@@ -143,13 +143,33 @@ class MayaAccessibilityService : AccessibilityService() {
             return try {
                 val path = Path().apply {
                     moveTo(x, y)
-                    lineTo(x, y)
+                    lineTo(x + 2f, y + 2f)
                 }
                 val builder = GestureDescription.Builder()
-                builder.addStroke(GestureDescription.StrokeDescription(path, 0, 80))
+                builder.addStroke(GestureDescription.StrokeDescription(path, 0, 100))
                 inst.dispatchGesture(builder.build(), null, null)
             } catch (e: Exception) {
                 Log.e(TAG, "Error dispatching gesture click", e)
+                false
+            }
+        }
+
+        fun scrollReelsNext(): Boolean {
+            val inst = instance ?: return false
+            val dm = inst.resources.displayMetrics
+            val startX = dm.widthPixels * 0.5f
+            val startY = dm.heightPixels * 0.75f
+            val endY = dm.heightPixels * 0.25f
+            return try {
+                val path = Path().apply {
+                    moveTo(startX, startY)
+                    lineTo(startX, endY)
+                }
+                val builder = GestureDescription.Builder()
+                builder.addStroke(GestureDescription.StrokeDescription(path, 0, 250))
+                inst.dispatchGesture(builder.build(), null, null)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error scrolling reels", e)
                 false
             }
         }
@@ -176,11 +196,11 @@ class MayaAccessibilityService : AccessibilityService() {
             }
         }
 
-        fun startWhatsAppSendWatcher(message: String?) {
+        fun startWhatsAppSendWatcher(message: String) {
             shouldAutoClickWhatsApp = true
             targetWhatsAppMessage = message
             scheduleWhatsAppSendRetry(0)
-            mainHandler.postDelayed({ shouldAutoClickWhatsApp = false }, 18000)
+            mainHandler.postDelayed({ shouldAutoClickWhatsApp = false }, 20000)
         }
 
         fun startWhatsAppSearchAndSend(contact: String, message: String) {
@@ -188,7 +208,7 @@ class MayaAccessibilityService : AccessibilityService() {
             targetWhatsAppContact = contact
             targetWhatsAppMessage = message
             scheduleWhatsAppSearchRetry(0)
-            mainHandler.postDelayed({ shouldSearchAndSendWhatsApp = false }, 20000)
+            mainHandler.postDelayed({ shouldSearchAndSendWhatsApp = false }, 25000)
         }
 
         fun startGeminiPromptPaster(prompt: String) {
@@ -252,10 +272,21 @@ class MayaAccessibilityService : AccessibilityService() {
                             // Try clicking Send button via view IDs & content descriptions
                             var clicked = inst.searchAndClickSendButton(root)
 
-                            // If not clicked, calculate and dispatch physical click at bottom-right Send location
+                            // If not clicked, calculate and dispatch physical click directly right of entryBox
                             if (!clicked) {
                                 val dm = inst.resources.displayMetrics
-                                val sendX = dm.widthPixels * 0.92f
+                                val sendX = if (entryBox != null) {
+                                    val b = Rect()
+                                    entryBox.getBoundsInScreen(b)
+                                    if (b.right > 0 && b.right < dm.widthPixels) {
+                                        (b.right + (dm.widthPixels - b.right) * 0.5f).coerceIn(b.right + 20f, dm.widthPixels - 15f)
+                                    } else {
+                                        dm.widthPixels * 0.92f
+                                    }
+                                } else {
+                                    dm.widthPixels * 0.92f
+                                }
+
                                 val sendY = if (entryBox != null) {
                                     val b = Rect()
                                     entryBox.getBoundsInScreen(b)
@@ -263,6 +294,7 @@ class MayaAccessibilityService : AccessibilityService() {
                                 } else {
                                     dm.heightPixels * 0.94f
                                 }
+
                                 clicked = dispatchGestureClick(sendX, sendY)
                             }
 
@@ -631,7 +663,10 @@ class MayaAccessibilityService : AccessibilityService() {
                 "com.whatsapp.w4b:id/send",
                 "com.whatsapp.w4b:id/entry_send_button",
                 "com.whatsapp:id/send_button_container",
-                "com.whatsapp:id/btn_send"
+                "com.whatsapp:id/btn_send",
+                "com.whatsapp:id/floating_action_button",
+                "com.whatsapp:id/fab",
+                "com.whatsapp:id/send_fab"
             )
             for (id in idsToTry) {
                 val sendButtons = node.findAccessibilityNodeInfosByViewId(id)

@@ -368,12 +368,15 @@ class MayaWakeWordManager(
                             val best = matches.firstOrNull { candidate ->
                                 val lower = candidate.lowercase()
                                 lower.contains("whatsapp") || lower.contains("व्हाट्सएप") ||
+                                lower.contains("ritesh") || lower.contains("रितेश") ||
                                 lower.contains("vikas") || lower.contains("विकास") ||
+                                lower.contains("gemini") || lower.contains("जेमिनी") || lower.contains("जेमनाई") ||
+                                lower.contains("शेर") || lower.contains("फोटो") || lower.contains("इमेज") ||
+                                lower.contains("instagram") || lower.contains("इंस्टाग्राम") || lower.contains("reel") || lower.contains("रील") ||
+                                lower.contains("touch") || lower.contains("टच") ||
                                 lower.contains("lock") || lower.contains("लॉक") ||
                                 lower.contains("torch") || lower.contains("फ्लैश") ||
                                 lower.contains("gana") || lower.contains("गाना") ||
-                                lower.contains("gemini") || lower.contains("जेमिनी") ||
-                                lower.contains("instagram") || lower.contains("इंस्टाग्राम") ||
                                 lower.contains("open") || lower.contains("kholo") || lower.contains("खोलो")
                             } ?: matches.firstOrNull()?.trim() ?: ""
 

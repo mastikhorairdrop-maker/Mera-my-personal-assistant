@@ -172,11 +172,16 @@ object UserSettingsManager {
     }
 
     fun getVoiceName(context: Context): String {
+        val persona = getPrefs(context).getString("voice_persona", null)
+        if (!persona.isNullOrBlank()) return persona
         return getPrefs(context).getString(KEY_VOICE_NAME, "Aoede") ?: "Aoede"
     }
 
     fun setVoiceName(context: Context, voice: String) {
-        getPrefs(context).edit().putString(KEY_VOICE_NAME, voice).apply()
+        getPrefs(context).edit()
+            .putString(KEY_VOICE_NAME, voice)
+            .putString("voice_persona", voice)
+            .apply()
     }
 
     fun getVoiceModel(context: Context): String {
@@ -188,7 +193,7 @@ object UserSettingsManager {
     }
 
     fun getSpeechSpeed(context: Context): Float {
-        return getPrefs(context).getFloat(KEY_SPEECH_SPEED, 0.85f)
+        return getPrefs(context).getFloat(KEY_SPEECH_SPEED, 1.0f)
     }
 
     fun setSpeechSpeed(context: Context, speed: Float) {
@@ -196,7 +201,7 @@ object UserSettingsManager {
     }
 
     fun getVoiceVolume(context: Context): Float {
-        return getPrefs(context).getFloat(KEY_VOICE_VOLUME, 0.65f)
+        return getPrefs(context).getFloat(KEY_VOICE_VOLUME, 1.0f)
     }
 
     fun setVoiceVolume(context: Context, vol: Float) {
@@ -530,11 +535,16 @@ object UserSettingsManager {
     }
 
     fun getVoicePersona(context: Context): String {
-        return getPrefs(context).getString("voice_persona", "Aoede") ?: "Aoede"
+        return getPrefs(context).getString("voice_persona", null)
+            ?: getPrefs(context).getString(KEY_VOICE_NAME, "Aoede")
+            ?: "Aoede"
     }
 
     fun setVoicePersona(context: Context, persona: String) {
-        getPrefs(context).edit().putString("voice_persona", persona).apply()
+        getPrefs(context).edit()
+            .putString("voice_persona", persona)
+            .putString(KEY_VOICE_NAME, persona)
+            .apply()
     }
 
     fun getPreferredMusicApp(context: Context): String {

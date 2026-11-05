@@ -2,7 +2,9 @@ package com.example.ui
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -138,6 +140,21 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
     LaunchedEffect(Unit) {
         EdgeLightOverlayManager.init(context)
         edgeLightMode = EdgeLightOverlayManager.getMode()
+
+        if (ZoyaForegroundService.activeService == null &&
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
+                val intent = Intent(context, ZoyaForegroundService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    ContextCompat.startForegroundService(context, intent)
+                } else {
+                    context.startService(intent)
+                }
+                serviceStarted = true
+            } catch (_: Exception) {}
+        }
+
         ZoyaForegroundService.onStateChange = { state ->
             zoyaState = state
             serviceStarted = ZoyaForegroundService.activeService != null

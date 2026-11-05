@@ -159,36 +159,43 @@ object MayaSpeaker {
     }
 
     /**
-     * Applies voice pitch, speech rate, and persona dynamically based on UserSettingsManager
+     * Applies voice pitch, speech rate, and persona dynamically based on UserSettingsManager.
+     * Tuned with natural, sweet, warm, high-clarity female Hindi frequencies.
      */
     fun applyVoiceSettings(context: Context) {
-        val voiceName = com.example.settings.UserSettingsManager.getVoiceName(context)
-        val userSpeed = com.example.settings.UserSettingsManager.getSpeechSpeed(context)
+        val voiceName = com.example.settings.UserSettingsManager.getVoicePersona(context).ifBlank {
+            com.example.settings.UserSettingsManager.getVoiceName(context)
+        }
+        val userSpeed = com.example.settings.UserSettingsManager.getSpeechSpeed(context).coerceIn(0.7f, 1.5f)
 
-        val pitch = when (voiceName.lowercase()) {
-            "kore", "damdaar" -> 0.92f
-            "leda", "jawaan" -> 1.14f
-            "zephyr", "chamakdaar" -> 1.06f
-            "laomedeia", "josheeli" -> 1.12f
-            "despina", "mulaayam" -> 1.02f
-            "erinome", "saaf" -> 1.00f
-            "callirrhoe", "befikar" -> 1.06f
-            "gacrux", "mature" -> 0.90f
-            "pulcherrima", "bebaak" -> 1.10f
-            "sulafat", "garmjoshi bhari" -> 1.04f
-            "vindemiatrix", "komal" -> 1.03f
-            else -> 1.05f // Aoede / Halki-phulki
+        // Sweet feminine pitch tuning (Standard Android female voice base sounds sweet & expressive at 1.15f - 1.30f)
+        val pitch = when (voiceName.lowercase().trim()) {
+            "aoede" -> 1.25f // मीठी और रोमांटिक (Default Sweet Girlfriend)
+            "kore" -> 1.28f // चुलबुली और नटखट (Playful & bubbly)
+            "leda" -> 1.20f // शांत और प्यारी (Calm & gentle)
+            "zephyr" -> 1.15f // गंभीर और समझदार (Poised & smart)
+            "laomedeia" -> 1.22f // सॉफ्ट और स्लो (Soft & caring)
+            "despina" -> 1.26f // तेज और स्मार्ट (Sharp & quick)
+            "erinome" -> 1.23f // दोस्ताना और खुशमिजाज (Friendly & cheerful)
+            "callirrhoe" -> 1.30f // मॉडर्न और एनर्जेटिक (Modern & upbeat)
+            "gacrux" -> 1.05f // गहरी और मजबूत (Deep & mature guide)
+            "pulcherrima" -> 1.21f // सुरमयी और मखमली (Melodic & silky)
+            "sulafat" -> 1.18f // धीमी और सुकूनभरी (Relaxing & soothing)
+            "vindemiatrix" -> 1.26f // कॉन्फिडेंट और बोल्ड (Confident & bold)
+            else -> 1.25f
         }
 
-        val rate = when (voiceName.lowercase()) {
-            "despina", "mulaayam", "vindemiatrix", "komal", "gacrux" -> (userSpeed * 0.94f)
-            "leda", "jawaan", "laomedeia", "josheeli" -> (userSpeed * 1.03f)
+        val rate = when (voiceName.lowercase().trim()) {
+            "laomedeia", "sulafat" -> (userSpeed * 0.92f) // Softer, slower tempo
+            "despina", "callirrhoe", "kore" -> (userSpeed * 1.05f) // Brisk, energetic tempo
+            "gacrux" -> (userSpeed * 0.96f)
             else -> userSpeed
         }
 
         try {
             tts?.setPitch(pitch)
             tts?.setSpeechRate(rate)
+            Log.d(TAG, "Applied voice settings: persona=$voiceName, pitch=$pitch, rate=$rate")
         } catch (_: Exception) {}
     }
 

@@ -21,6 +21,7 @@ import android.os.VibratorManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.live.LiveSessionManager
+import com.example.live.MayaSpeaker
 import com.example.live.MayaWakeWordManager
 import com.example.live.ZoyaState
 import com.example.tools.ToolExecutionEngine
@@ -331,6 +332,24 @@ class ZoyaForegroundService : Service() {
         if (handled) {
             Log.i("MayaService", "Command '$textToProcess' handled instantly by FastIntentEngine!")
             return
+        }
+
+        // Safety Watchdog: Guarantees Maya NEVER gets stuck in THINKING state!
+        scope.launch {
+            kotlinx.coroutines.delay(3500)
+            if (currentState == ZoyaState.THINKING) {
+                Log.w("MayaService", "Watchdog: Command '$textToProcess' timed out in THINKING. Recovering gracefully!")
+                val fallbackReply = "हाँ बाबू, मैं सुन रही हूँ! बताइए क्या हुक्म है?"
+                currentState = ZoyaState.SPEAKING
+                onStateChange?.invoke(ZoyaState.SPEAKING)
+                MayaSpeaker.speak(fallbackReply, flush = true) {
+                    currentState = ZoyaState.IDLE
+                    onStateChange?.invoke(ZoyaState.IDLE)
+                    if (!isSleeping) {
+                        wakeWordManager?.resumeListening()
+                    }
+                }
+            }
         }
 
         // Forward to Gemini Live Session

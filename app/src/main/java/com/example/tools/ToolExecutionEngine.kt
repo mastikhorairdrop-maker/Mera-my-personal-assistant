@@ -688,37 +688,44 @@ class ToolExecutionEngine(private val context: Context) {
     fun sendInstagram(usernameOrName: String, message: String): String = sendInstagramMessage(usernameOrName, message)
 
     fun sendInstagramMessage(usernameOrName: String, message: String): String {
-        if (message.isBlank()) {
-            return "NEED_MESSAGE: Babu, Instagram par $usernameOrName ko kya message bhejna hai?"
-        }
-
+        val finalMsg = if (message.isBlank()) "हाय" else message
         val cleanUser = usernameOrName.replace("@", "").trim()
 
         try {
             // Copy message to clipboard for easy pasting / auto-send
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("Instagram Message", message)
+            val clip = ClipData.newPlainText("Instagram Message", finalMsg)
             clipboard.setPrimaryClip(clip)
 
             MayaAccessibilityService.targetInstagramUser = cleanUser
-            MayaAccessibilityService.targetInstagramMessage = message
+            MayaAccessibilityService.targetInstagramMessage = finalMsg
             MayaAccessibilityService.shouldAutoClickInstagram = true
 
-            val isAsciiHandle = cleanUser.isNotEmpty() && cleanUser.matches(Regex("^[a-zA-Z0-9._]{1,30}$"))
-
+            // Try opening Instagram Direct if specific user requested
             val pm = context.packageManager
-            val launchIntent = pm.getLaunchIntentForPackage("com.instagram.android")
+            val directUri = Uri.parse("instagram://direct_v2")
+            val directIntent = Intent(Intent.ACTION_VIEW, directUri).apply {
+                setPackage("com.instagram.android")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
 
+            if (directIntent.resolveActivity(pm) != null) {
+                context.startActivity(directIntent)
+                return "Opened Instagram Direct. Message '$finalMsg' copied to clipboard."
+            }
+
+            // Normal Instagram app launch with safe flags (NEVER CLEAR_TOP)
+            val launchIntent = pm.getLaunchIntentForPackage("com.instagram.android")
             if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(launchIntent)
-                return "Opened Instagram app. Message '$message' copied to clipboard."
+                return "Opened Instagram app. Message '$finalMsg' copied to clipboard."
             } else {
-                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com")).apply {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://instagram.com/direct/inbox/")).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(webIntent)
-                return "Opened Instagram web. Message '$message' copied to clipboard."
+                return "Opened Instagram web. Message '$finalMsg' copied to clipboard."
             }
         } catch (e: Exception) {
             return "Instagram error: ${e.message}"
@@ -819,7 +826,9 @@ class ToolExecutionEngine(private val context: Context) {
                     "शर्मा" to "sharma", "sharma" to "शर्मा",
                     "शुक्ला" to "shukla", "shukla" to "शुक्ला"
                 )
-                val alternateKey = transliterationMap[cleanPattern] ?: ""
+
+                val alternateWords = searchWords.map { transliterationMap[it] ?: it }
+                val altCombined = alternateWords.joinToString(" ")
 
                 while (cursor.moveToNext()) {
                     val contactName = cursor.getString(nameIdx) ?: continue
@@ -830,13 +839,17 @@ class ToolExecutionEngine(private val context: Context) {
 
                     val contactNameNoSpace = cleanContactName.replace(" ", "")
                     val patternNoSpace = cleanPattern.replace(" ", "")
+                    val altNoSpace = altCombined.replace(" ", "")
 
                     val matchesDirect = contactNameNoSpace == patternNoSpace || cleanContactName == cleanPattern ||
-                            (alternateKey.isNotEmpty() && cleanContactName.contains(alternateKey))
+                            contactNameNoSpace == altNoSpace || cleanContactName == altCombined
+
                     val matchesPrefix = contactNameNoSpace.startsWith(patternNoSpace) || cleanContactName.startsWith(cleanPattern) ||
-                            (alternateKey.isNotEmpty() && cleanContactName.startsWith(alternateKey))
+                            contactNameNoSpace.startsWith(altNoSpace) || cleanContactName.startsWith(altCombined)
+
                     val matchesWords = (searchWords.isNotEmpty() && searchWords.all { cleanContactName.contains(it) }) ||
-                            cleanContactName.contains(cleanPattern)
+                            (alternateWords.isNotEmpty() && alternateWords.all { cleanContactName.contains(it) }) ||
+                            cleanContactName.contains(cleanPattern) || cleanContactName.contains(altCombined)
 
                     if (matchesDirect) {
                         exactMatches.add(Pair(contactName, contactNum))
@@ -845,6 +858,8 @@ class ToolExecutionEngine(private val context: Context) {
                     } else if (matchesWords) {
                         containsMatches.add(Pair(contactName, contactNum))
                     } else if (contactNameNoSpace.contains(patternNoSpace) && patternNoSpace.length > 2) {
+                        containsMatches.add(Pair(contactName, contactNum))
+                    } else if (contactNameNoSpace.contains(altNoSpace) && altNoSpace.length > 2) {
                         containsMatches.add(Pair(contactName, contactNum))
                     }
                 }
