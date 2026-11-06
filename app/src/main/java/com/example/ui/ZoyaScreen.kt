@@ -527,6 +527,61 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                 )
             }
 
+            // Quick Action Row 2 (Ok Google, AI Sher Image, Instagram Reels & Touch Guard)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickActionPill(
+                    icon = "🌐",
+                    label = "ओके गूगल",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val engine = com.example.tools.ToolExecutionEngine(context)
+                        engine.launchGoogleAssistant()
+                    }
+                )
+                QuickActionPill(
+                    icon = "🦁",
+                    label = "शेर की इमेज",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (!serviceStarted) {
+                            val intent = Intent(context, ZoyaForegroundService::class.java)
+                            ContextCompat.startForegroundService(context, intent)
+                            serviceStarted = true
+                        }
+                        ZoyaForegroundService.activeService?.sendTextMessage("जेमनाई से एक शेर की इमेज बनवाओ")
+                    }
+                )
+                QuickActionPill(
+                    icon = "📸",
+                    label = "Instagram रील",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (!serviceStarted) {
+                            val intent = Intent(context, ZoyaForegroundService::class.java)
+                            ContextCompat.startForegroundService(context, intent)
+                            serviceStarted = true
+                        }
+                        ZoyaForegroundService.activeService?.sendTextMessage("Instagram par reel lagao")
+                    }
+                )
+                QuickActionPill(
+                    icon = "🛡️",
+                    label = "टच गार्ड",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (!serviceStarted) {
+                            val intent = Intent(context, ZoyaForegroundService::class.java)
+                            ContextCompat.startForegroundService(context, intent)
+                            serviceStarted = true
+                        }
+                        ZoyaForegroundService.activeService?.sendTextMessage("टच गार्ड चालू करो")
+                    }
+                )
+            }
+
             // POWER, SLEEP & BATTERY SAVER CARD (सुलाएं • बंद करें • लाइट कंट्रोल)
             Surface(
                 modifier = Modifier

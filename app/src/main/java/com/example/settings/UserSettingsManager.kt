@@ -588,11 +588,11 @@ object UserSettingsManager {
     }
 
     fun getVoicePitch(context: Context): Float {
-        return getPrefs(context).getFloat("voice_pitch", 1.15f)
+        return getPrefs(context).getFloat("voice_pitch", 1.07f)
     }
 
     fun setVoicePitch(context: Context, pitch: Float) {
-        getPrefs(context).edit().putFloat("voice_pitch", pitch).apply()
+        getPrefs(context).edit().putFloat("voice_pitch", pitch.coerceIn(0.95f, 1.15f)).apply()
     }
 
     fun getSecretModeLocked(context: Context): Boolean {

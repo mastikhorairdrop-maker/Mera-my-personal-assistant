@@ -45,7 +45,9 @@ class LiveSessionManager(
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
-        .pingInterval(15, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .pingInterval(0, TimeUnit.SECONDS) // Disables aggressive OkHttp ping timer that causes SocketTimeoutException
+        .retryOnConnectionFailure(true)
         .build()
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
@@ -455,15 +457,23 @@ class LiveSessionManager(
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 val errorBody = response?.body?.string() ?: "No body"
-                Log.e("MayaDiagnostic", "WebSocket ERROR: ${t.message}, Response: $errorBody", t)
-                addMessage("Connection error: ${t.message}")
+                Log.w("MayaDiagnostic", "WebSocket connection reset or failed: ${t.message}, Response: $errorBody")
                 _zoyaState.value = ZoyaState.IDLE
                 this@LiveSessionManager.webSocket = null
+                isSetupComplete = false
+
+                val friendlyMsg = when {
+                    t is java.net.SocketTimeoutException -> "नेटवर्क धीमा होने के कारण लाइव स्ट्रीम रीसेट हो गया है।"
+                    response?.code == 400 || response?.code == 403 -> "कृपया Settings में जाकर अपनी Gemini API Key सत्यापित करें।"
+                    else -> "लाइव स्ट्रीम रीसेट हो गया है।"
+                }
+                addMessage("Maya: $friendlyMsg")
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 Log.i("MayaDiagnostic", "WebSocket closed. Reason: $reason")
                 _zoyaState.value = ZoyaState.IDLE
+                isSetupComplete = false
                 this@LiveSessionManager.webSocket = null
             }
         })

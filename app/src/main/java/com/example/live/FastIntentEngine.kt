@@ -72,6 +72,32 @@ class FastIntentEngine(
             return true
         }
 
+        // 1B. Ok Google & Google Assistant Instant Launch
+        if (query.contains("ok google") || query.contains("okay google") || query.contains("hey google") ||
+            query.contains("ओके गूगल") || query.contains("हे गूगल") || query.contains("google assistant") ||
+            query.contains("गूगल असिस्टेंट") || query.contains("गूगल सहायक") ||
+            ((query.contains("google") || query.contains("गूगल")) && (query.contains("assistant") || query.contains("असिस्टेंट") || query.contains("kholo") || query.contains("open") || query.contains("खोलो") || query.contains("chalu") || query.contains("चालू")))
+        ) {
+            val opened = toolEngine.launchGoogleAssistant()
+            val reply = if (opened) {
+                "हाँ बॉस, गूगल असिस्टेंट चालू कर दिया है! आप सीधे बोल सकते हैं।"
+            } else {
+                "हाँ बॉस, गूगल असिस्टेंट चालू कर रही हूँ!"
+            }
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 1C. Default Assistant Settings (सेट डिफ़ॉल्ट असिस्टेंट)
+        if (query.contains("default assistant") || query.contains("डिफ़ॉल्ट असिस्टेंट") || query.contains("डिफॉल्ट असिस्टेंट") ||
+            query.contains("assistant settings") || query.contains("असिस्टेंट सेटिंग्स")
+        ) {
+            toolEngine.openDefaultAssistantSettings()
+            val reply = "हाँ बॉस, डिफ़ॉल्ट डिजिटल असिस्टेंट सेटिंग्स खोल दी है! आप यहाँ से माया को अपना मुख्य असिस्टेंट चुन सकते हैं।"
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
         // 2. Anti-Theft Touch Guard & Pocket Protection (Real Hardware Interceptor + Motion Alarm)
         if (query.contains("touch guard") || query.contains("touchguard") || query.contains("टच गार्ड") || query.contains("टचगार्ड") ||
             query.contains("टच प्रोटेक्शन") || query.contains("pocket mode") || query.contains("nazar rakhna") ||
@@ -340,6 +366,108 @@ class FastIntentEngine(
                 toolEngine.execute("toggleTorch", buildJsonObject { put("state", state) })
             }
             val reply = if (isOff) "Babu, flashlight band kar di!" else "Ji babu, flashlight on kar di hai!"
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 15B. Wi-Fi Control (Automation)
+        if (query.contains("wifi") || query.contains("वाईफाई") || query.contains("wi-fi") || query.contains("वायफाय")) {
+            val isOff = query.contains("off") || query.contains("band") || query.contains("बंद") || query.contains("ऑफ") || query.contains("hatao")
+            val isOn = query.contains("on") || query.contains("chalu") || query.contains("चालू") || query.contains("ऑन") || query.contains("laga")
+            val state = if (isOff) "off" else if (isOn) "on" else null
+            scope.launch(Dispatchers.IO) {
+                toolEngine.toggleWifi(state)
+            }
+            val reply = if (isOff) {
+                "हाँ बाबू, Wi-Fi बंद कर दिया है!"
+            } else if (isOn) {
+                "हाँ बाबू, Wi-Fi चालू कर दिया है!"
+            } else {
+                "हाँ बाबू, Wi-Fi टॉगल कर दिया है!"
+            }
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 15C. Screen Brightness Control (Automation)
+        if (query.contains("brightness") || query.contains("ब्राइटनेस") || query.contains("स्क्रीन ब्राइटनेस") ||
+            ((query.contains("screen") || query.contains("स्क्रीन")) && (query.contains("चमक") || query.contains("bright")))
+        ) {
+            val percentMatch = Regex("(\\d{1,3})\\s*(?:%|percent|प्रतिशत)?").find(query)?.groupValues?.get(1)?.toIntOrNull()
+            val level = when {
+                percentMatch != null -> percentMatch.coerceIn(0, 100)
+                query.contains("full") || query.contains("100") || query.contains("maximum") || query.contains("पूरा") || query.contains("पूरी") -> 100
+                query.contains("zero") || query.contains("minimum") || query.contains("कम से कम") -> 10
+                query.contains("half") || query.contains("50") || query.contains("आधा") || query.contains("आधी") -> 50
+                query.contains("badhao") || query.contains("increase") || query.contains("jyada") || query.contains("तेज") || query.contains("बढ़ाओ") -> 80
+                query.contains("kam") || query.contains("decrease") || query.contains("ghatao") || query.contains("कम") || query.contains("घटाओ") -> 30
+                else -> 60
+            }
+            val result = toolEngine.setBrightness(level)
+            val reply = if (result.startsWith("NEED_PERMISSION")) {
+                "बाबू, स्क्रीन ब्राइटनेस बदलने के लिए 'Write Settings' अनुमति चाहिए। मैंने सेटिंग्स खोल दी है, कृपया अनुमति दे दीजिए!"
+            } else {
+                "हाँ बाबू, स्क्रीन ब्राइटनेस $level% पर सेट कर दी है!"
+            }
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 15D. Alarm Clock (Automation)
+        if (query.contains("alarm") || query.contains("अलार्म")) {
+            var hour = 7
+            var minute = 0
+            val isPM = query.contains("pm") || query.contains("p.m.") || query.contains("shaam") || query.contains("शाम") ||
+                       query.contains("raat") || query.contains("रात") || query.contains("dopahar") || query.contains("दोपहर")
+            val isAM = query.contains("am") || query.contains("a.m.") || query.contains("subah") || query.contains("सुबह") || query.contains("bhor")
+
+            val timeMatch = Regex("(\\d{1,2})(?::(\\d{2}))?").find(query)
+            if (timeMatch != null) {
+                val parsedHour = timeMatch.groupValues[1].toIntOrNull() ?: 7
+                val parsedMinute = timeMatch.groupValues[2].takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 0
+                hour = parsedHour
+                minute = parsedMinute
+                if (isPM && hour < 12) hour += 12
+                if (isAM && hour == 12) hour = 0
+            } else if (isPM) {
+                hour = 19
+            }
+            hour = hour.coerceIn(0, 23)
+            minute = minute.coerceIn(0, 59)
+
+            val displayHour = if (hour > 12) hour - 12 else (if (hour == 0) 12 else hour)
+            val amPmText = if (hour < 12) "सुबह" else "शाम"
+            scope.launch(Dispatchers.IO) {
+                toolEngine.setAlarm(hour, minute, "Maya Alarm")
+            }
+            val reply = String.format("हाँ बाबू, %s %02d:%02d का अलार्म लगा दिया है! आप बेफिक्र होकर सोइए।", amPmText, displayHour, minute)
+            respondInstant(userText = rawText, reply = reply)
+            return true
+        }
+
+        // 15E. Timer (Automation)
+        if (query.contains("timer") || query.contains("टाइमर")) {
+            val minMatch = Regex("(\\d+)\\s*(?:min|minute|मिनट)", RegexOption.IGNORE_CASE).find(query)
+            val secMatch = Regex("(\\d+)\\s*(?:sec|second|सेकंड)", RegexOption.IGNORE_CASE).find(query)
+            val rawNumMatch = Regex("(\\d+)").find(query)
+
+            val totalSeconds = when {
+                minMatch != null -> (minMatch.groupValues[1].toIntOrNull() ?: 5) * 60
+                secMatch != null -> (secMatch.groupValues[1].toIntOrNull() ?: 30)
+                rawNumMatch != null -> (rawNumMatch.groupValues[1].toIntOrNull() ?: 5) * 60
+                else -> 300 // default 5 minutes
+            }
+            val mins = totalSeconds / 60
+            val secs = totalSeconds % 60
+            val durationText = buildString {
+                if (mins > 0) append("$mins मिनट ")
+                if (secs > 0) append("$secs सेकंड ")
+            }.trim().ifEmpty { "$totalSeconds सेकंड" }
+
+            scope.launch(Dispatchers.IO) {
+                toolEngine.setTimer(totalSeconds, "Maya Timer")
+            }
+            val reply = "हाँ बाबू, $durationText का टाइमर चालू कर दिया है!"
             respondInstant(userText = rawText, reply = reply)
             return true
         }

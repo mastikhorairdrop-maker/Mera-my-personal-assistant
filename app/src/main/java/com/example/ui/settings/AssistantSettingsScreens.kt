@@ -229,18 +229,18 @@ fun MayaAssistantSettingsView(onNavigateBack: () -> Unit) {
     var drivingMode by remember { mutableStateOf(UserSettingsManager.getDrivingModeAutoReply(context)) }
 
     val voices = listOf(
-        "Aoede" to "मीठी और रोमांटिक (Default)",
-        "Kore" to "चुलबुली और नटखट",
-        "Leda" to "शांत और प्यारी",
-        "Zephyr" to "गंभीर और समझदार",
-        "Laomedeia" to "सॉफ्ट और स्लो",
-        "Despina" to "तेज और स्मार्ट",
-        "Erinome" to "दोस्ताना और खुशमिजाज",
-        "Callirrhoe" to "मॉडर्न और एनर्जेटिक",
-        "Gacrux" to "गहरी और मजबूत",
-        "Pulcherrima" to "सुरमयी और मखमली",
-        "Sulafat" to "धीमी और सुकूनभरी",
-        "Vindemiatrix" to "कॉन्फिडेंट और बोल्ड"
+        "Aoede" to "मीठी और रोमांटिक वूमेन आवाज़ (Default)",
+        "Pari" to "परियों जैसी प्यारी और कोमल आवाज़",
+        "Zoya" to "गर्मजोशी और प्यार भरी स्वीट आवाज़",
+        "Kavya" to "स्पष्ट, मधुर और समझदार आवाज़",
+        "Kore" to "चुलबुली और नटखट वूमेन आवाज़",
+        "Leda" to "शांत, सौम्य और सुकूनभरी आवाज़",
+        "Laomedeia" to "सॉफ्ट और केयरिंग आवाज़",
+        "Despina" to "तेज और स्मार्ट आवाज़",
+        "Erinome" to "दोस्ताना और खुशमिजाज आवाज़",
+        "Callirrhoe" to "मॉडर्न और एनर्जेटिक आवाज़",
+        "Pulcherrima" to "सुरमयी और मखमली आवाज़",
+        "Sulafat" to "धीमी और सुकूनभरी आवाज़"
     )
 
     Column(
@@ -331,7 +331,8 @@ fun MayaAssistantSettingsView(onNavigateBack: () -> Unit) {
                             onClick = {
                                 selectedVoice = vName
                                 UserSettingsManager.setVoicePersona(context, vName)
-                                MayaSpeaker.speak(context, "नमस्ते! मैं माया हूँ। यह $vName आवाज़ का सैंपल है।")
+                                MayaSpeaker.applyVoiceSettings(context)
+                                MayaSpeaker.speak(context, "नमस्ते बाबू! मैं माया हूँ, कैसी लग रही है मेरी यह प्यारी सी आवाज़?")
                             },
                             modifier = Modifier
                                 .size(36.dp)
@@ -407,6 +408,41 @@ fun MayaAssistantSettingsView(onNavigateBack: () -> Unit) {
                             selectedLabelColor = Color.Black
                         )
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // 4. गूगल असिस्टेंट और ओके गूगल (Default Assistant & Ok Google)
+        CardSection(title = "🌐 गूगल असिस्टेंट & ओके गूगल (Ok Google)") {
+            Text("माया में 'ओके गूगल' या 'Google Assistant' बोलते ही या होम बटन लॉन्ग-प्रेस करने पर गूगल असिस्टेंट तुरंत खुल जाता है।", color = Color.LightGray, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = {
+                        val engine = com.example.tools.ToolExecutionEngine(context)
+                        engine.launchGoogleAssistant()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E5FF)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("🚀 टेस्ट ओके गूगल", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        val engine = com.example.tools.ToolExecutionEngine(context)
+                        engine.openDefaultAssistantSettings()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFF00E5FF)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("⚙️ डिफ़ॉल्ट असिस्टेंट", fontSize = 11.sp)
                 }
             }
         }

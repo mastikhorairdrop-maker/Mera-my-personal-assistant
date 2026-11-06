@@ -5,7 +5,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import android.os.Build
 import android.provider.ContactsContract
 import com.example.accessibility.MayaAccessibilityService
 import kotlinx.coroutines.Dispatchers
@@ -67,6 +69,10 @@ class ToolExecutionEngine(private val context: Context) {
                 "toggleTorch" -> {
                     val state = args["state"]?.jsonPrimitive?.content ?: return@withContext "Error: Missing state (on/off)"
                     toggleTorch(state)
+                }
+                "toggleWifi" -> {
+                    val state = args["state"]?.jsonPrimitive?.content
+                    toggleWifi(state)
                 }
                 "setBrightness" -> {
                     val levelStr = args["level"]?.jsonPrimitive?.content ?: return@withContext "Error: Missing level"
@@ -189,6 +195,14 @@ class ToolExecutionEngine(private val context: Context) {
                 "disableTouchGuard" -> {
                     com.example.guard.TouchGuardManager.disableTouchGuard(context)
                     "Touch guard mode deactivated."
+                }
+                "openGoogleAssistant", "launchGoogleAssistant" -> {
+                    val success = launchGoogleAssistant()
+                    if (success) "Google Assistant launched." else "Failed to launch Google Assistant."
+                }
+                "openDefaultAssistantSettings" -> {
+                    val success = openDefaultAssistantSettings()
+                    if (success) "Default assistant settings opened." else "Failed to open settings."
                 }
                 else -> "Error: Tool $name not found."
             }
@@ -394,6 +408,95 @@ class ToolExecutionEngine(private val context: Context) {
         } catch (e: Exception) {
             return "Failed to launch ChatGPT: ${e.message}"
         }
+    }
+
+    fun launchGoogleAssistant(): Boolean {
+        // 1. Try launching Google Assistant via system VOICE_COMMAND
+        try {
+            val intent = Intent(Intent.ACTION_VOICE_COMMAND).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 2. Try launching Google Assistant via system ACTION_ASSIST
+        try {
+            val intent = Intent(Intent.ACTION_ASSIST).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 3. Try opening Google Assistant standalone app
+        try {
+            val pm = context.packageManager
+            val assistantIntent = pm.getLaunchIntentForPackage("com.google.android.apps.googleassistant")
+            if (assistantIntent != null) {
+                assistantIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(assistantIntent)
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 4. Try opening Google Quick Search Box voice search
+        try {
+            val searchIntent = Intent(Intent.ACTION_MAIN).apply {
+                setClassName("com.google.android.googlequicksearchbox", "com.google.android.googlequicksearchbox.VoiceSearchActivity")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            if (searchIntent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(searchIntent)
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 5. Try Google app launch intent
+        try {
+            val pm = context.packageManager
+            val googleIntent = pm.getLaunchIntentForPackage("com.google.android.googlequicksearchbox")
+            if (googleIntent != null) {
+                googleIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(googleIntent)
+                return true
+            }
+        } catch (_: Exception) {}
+
+        // 6. Fallback to web search
+        try {
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com")).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(webIntent)
+            return true
+        } catch (_: Exception) {}
+
+        return false
+    }
+
+    fun openDefaultAssistantSettings(): Boolean {
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_VOICE_INPUT_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {}
+
+        try {
+            val intent = Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) {}
+
+        return false
     }
 
     fun createAndOpenGame(gameName: String = "Flappy Glow"): String {
@@ -932,7 +1035,46 @@ class ToolExecutionEngine(private val context: Context) {
         }
     }
 
-    private fun setBrightness(level: Int): String {
+    fun toggleWifi(state: String? = null): String {
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val isCurrentlyEnabled = wifiManager?.isWifiEnabled ?: false
+            val turnOn = when (state?.lowercase()) {
+                "on", "enable", "chalu", "चालू", "ऑन" -> true
+                "off", "disable", "band", "बंद", "ऑफ" -> false
+                else -> !isCurrentlyEnabled
+            }
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
+                val success = wifiManager?.setWifiEnabled(turnOn) ?: false
+                return if (success) {
+                    if (turnOn) "Wi-Fi चालू कर दिया गया है।" else "Wi-Fi बंद कर दिया गया है।"
+                } else {
+                    "Wi-Fi टॉगल करने में असमर्थ।"
+                }
+            } else {
+                // Android 10+ uses Settings Panel for Wi-Fi toggle bottom sheet or Wi-Fi settings
+                val panelIntent = Intent(android.provider.Settings.Panel.ACTION_WIFI).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (panelIntent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(panelIntent)
+                    return if (turnOn) "Wi-Fi पैनल खोल दिया गया है, चालू कर लीजिए।" else "Wi-Fi पैनल खोल दिया गया है, बंद कर लीजिए।"
+                } else {
+                    val settingsIntent = Intent(android.provider.Settings.ACTION_WIFI_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(settingsIntent)
+                    return "Wi-Fi सेटिंग्स खोल दी गई है।"
+                }
+            }
+        } catch (e: Exception) {
+            return "Wi-Fi टॉगल में त्रुटि: ${e.message}"
+        }
+    }
+
+    fun setBrightness(level: Int): String {
         try {
             if (!android.provider.Settings.System.canWrite(context)) {
                 val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
@@ -940,7 +1082,7 @@ class ToolExecutionEngine(private val context: Context) {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
-                return "Please grant Write Settings permission to adjust screen brightness."
+                return "NEED_PERMISSION: Please grant Write Settings permission to adjust screen brightness."
             }
 
             val brightness = (level.coerceIn(0, 100) * 255) / 100
@@ -1052,7 +1194,7 @@ class ToolExecutionEngine(private val context: Context) {
         } else "Accessibility service not active."
     }
 
-    private fun setAlarm(hour: Int, minute: Int, message: String): String {
+    fun setAlarm(hour: Int, minute: Int, message: String = "Maya Alarm"): String {
         return try {
             val intent = Intent(android.provider.AlarmClock.ACTION_SET_ALARM).apply {
                 putExtra(android.provider.AlarmClock.EXTRA_HOUR, hour)
@@ -1068,7 +1210,7 @@ class ToolExecutionEngine(private val context: Context) {
         }
     }
 
-    private fun setTimer(seconds: Int, message: String): String {
+    fun setTimer(seconds: Int, message: String = "Maya Timer"): String {
         return try {
             val intent = Intent(android.provider.AlarmClock.ACTION_SET_TIMER).apply {
                 putExtra(android.provider.AlarmClock.EXTRA_LENGTH, seconds)

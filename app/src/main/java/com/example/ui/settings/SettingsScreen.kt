@@ -1302,36 +1302,52 @@ fun VoiceAndLanguageScreen(
 
     // DIALOG: VOICE SELECTION
     if (showVoiceDialog) {
-        val voiceOptions = listOf("Kore", "Aoede", "Puck", "Charon", "Fenrir")
+        val voiceOptions = listOf(
+            "Aoede" to "मीठी वूमेन आवाज़ (Default)",
+            "Pari" to "परियों जैसी कोमल आवाज़",
+            "Zoya" to "गर्मजोशी और प्यार भरी",
+            "Kavya" to "स्पष्ट और मधुर आवाज़",
+            "Kore" to "चुलबुली और नटखट",
+            "Leda" to "शांत और सौम्य"
+        )
         AlertDialog(
             onDismissRequest = { showVoiceDialog = false },
             containerColor = Color(0xFF1A1530),
-            title = { Text("Choose Voice", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Choose Sweet Voice", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    voiceOptions.forEach { v ->
+                    voiceOptions.forEach { (vKey, vLabel) ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    selectedVoice = v
-                                    UserSettingsManager.setVoiceName(context, v)
+                                    selectedVoice = vKey
+                                    UserSettingsManager.setVoiceName(context, vKey)
+                                    UserSettingsManager.setVoicePersona(context, vKey)
+                                    com.example.live.MayaSpeaker.applyVoiceSettings(context)
+                                    com.example.live.MayaSpeaker.speak(context, "नमस्ते बाबू! कैसी लगी आपको यह प्यारी सी $vKey आवाज़?")
                                     showVoiceDialog = false
                                 }
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
-                                selected = selectedVoice == v,
+                                selected = selectedVoice.equals(vKey, ignoreCase = true),
                                 onClick = {
-                                    selectedVoice = v
-                                    UserSettingsManager.setVoiceName(context, v)
+                                    selectedVoice = vKey
+                                    UserSettingsManager.setVoiceName(context, vKey)
+                                    UserSettingsManager.setVoicePersona(context, vKey)
+                                    com.example.live.MayaSpeaker.applyVoiceSettings(context)
+                                    com.example.live.MayaSpeaker.speak(context, "नमस्ते बाबू! कैसी लगी आपको यह प्यारी सी $vKey आवाज़?")
                                     showVoiceDialog = false
                                 },
                                 colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFC084FC))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(v, color = Color.White, fontSize = 15.sp)
+                            Column {
+                                Text(vKey, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                Text(vLabel, color = Color.LightGray, fontSize = 11.sp)
+                            }
                         }
                     }
                 }

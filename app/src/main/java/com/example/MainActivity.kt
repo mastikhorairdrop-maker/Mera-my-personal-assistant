@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
         com.example.memory.MayaMemoryManager.init(this)
 
         checkPermissions()
+        handleAssistantIntent(intent)
 
         setContent {
             MyApplicationTheme(darkTheme = true) {
@@ -51,6 +52,20 @@ class MainActivity : ComponentActivity() {
                 ) {
                     ZoyaScreen()
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleAssistantIntent(intent)
+    }
+
+    private fun handleAssistantIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_ASSIST || intent?.action == Intent.ACTION_VOICE_COMMAND) {
+            startMayaForegroundService()
+            ZoyaForegroundService.activeService?.wakeWordManager?.startCommandRecognition { cmd ->
+                ZoyaForegroundService.activeService?.handleUserCommand(cmd)
             }
         }
     }
