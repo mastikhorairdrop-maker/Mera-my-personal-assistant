@@ -930,12 +930,17 @@ fun HomeScreen(onNavigateToChat: () -> Unit) {
                     subValue = monthDayFormat
                 )
 
+                val currentMayaMood by com.example.emotion.MayaMoodManager.currentMood.collectAsState()
                 InfoCard(
                     modifier = Modifier.weight(1f),
-                    icon = "💛",
-                    title = "Mood",
-                    mainValue = "Romantic",
-                    subValue = "All good"
+                    icon = currentMayaMood.emoji,
+                    title = "Maya Mood",
+                    mainValue = currentMayaMood.titleHindi,
+                    subValue = "दिल की बात सुनें",
+                    onClick = {
+                        val greeting = com.example.emotion.MayaMoodManager.getMoodVoiceGreeting(context)
+                        com.example.live.MayaSpeaker.speak(context, greeting, mood = currentMayaMood)
+                    }
                 )
             }
 
@@ -1626,10 +1631,13 @@ fun InfoCard(
     icon: String,
     title: String,
     mainValue: String,
-    subValue: String
+    subValue: String,
+    onClick: (() -> Unit)? = null
 ) {
     Surface(
-        modifier = modifier.height(86.dp),
+        modifier = modifier
+            .height(86.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         color = Color(0xFF161824),
         shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))

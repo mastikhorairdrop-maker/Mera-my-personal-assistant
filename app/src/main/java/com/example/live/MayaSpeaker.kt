@@ -204,18 +204,21 @@ object MayaSpeaker {
     }
 
     /**
-     * Applies voice pitch, speech rate, and persona dynamically based on UserSettingsManager.
-     * Tuned with natural, warm, sweet, human-like feminine frequencies (1.05f - 1.09f),
-     * avoiding unnatural robotic/chipmunk distortion caused by aggressive pitch shifts (>1.20f).
+     * Applies voice pitch, speech rate, and persona dynamically based on UserSettingsManager
+     * and current emotional mood (MayaMood).
+     * Modulates pitch and rate to express authentic emotions:
+     * - Emotional / Sympathetic: softer, warmer, gentle comforting pace
+     * - Joyful / Playful: brighter, cheerful, lively tempo
+     * - Romantic / Loving: tender, sweet, intimate resonance
      */
-    fun applyVoiceSettings(context: Context) {
+    fun applyVoiceSettings(context: Context, mood: com.example.emotion.MayaMood? = null) {
         val voiceName = com.example.settings.UserSettingsManager.getVoicePersona(context).ifBlank {
             com.example.settings.UserSettingsManager.getVoiceName(context)
         }
         val userSpeed = com.example.settings.UserSettingsManager.getSpeechSpeed(context).coerceIn(0.8f, 1.3f)
+        val currentMood = mood ?: com.example.emotion.MayaMoodManager.getCurrentMood()
 
         // Sweet feminine pitch tuning:
-        // 1.06f - 1.08f is the gold standard for warm, sweet, natural Indian female vocal resonance.
         val basePitch = when (voiceName.lowercase().trim()) {
             "aoede" -> 1.07f // मीठी और रोमांटिक (Default Sweet Girlfriend)
             "pari" -> 1.08f // परियों जैसी कोमल और प्यारी
@@ -235,18 +238,22 @@ object MayaSpeaker {
             else -> 1.07f
         }
 
-        // Natural cadence tempo (0.96f - 1.0f gives a relaxed, affectionate speaking pace)
-        val rate = when (voiceName.lowercase().trim()) {
+        // Natural cadence tempo
+        val baseRate = when (voiceName.lowercase().trim()) {
             "laomedeia", "sulafat" -> (userSpeed * 0.94f) // Softer, slower tempo
             "despina", "callirrhoe", "kore" -> (userSpeed * 1.02f) // Lively, energetic tempo
             "gacrux" -> (userSpeed * 0.95f)
             else -> (userSpeed * 0.98f)
         }
 
+        // Modulate with mood multiplier for living human-like feelings
+        val finalPitch = (basePitch * (currentMood.pitchMultiplier / 1.06f)).coerceIn(1.02f, 1.12f)
+        val finalRate = (baseRate * (currentMood.rateMultiplier / 0.98f)).coerceIn(0.88f, 1.15f)
+
         try {
-            tts?.setPitch(basePitch)
-            tts?.setSpeechRate(rate)
-            Log.d(TAG, "Applied voice settings: persona=$voiceName, pitch=$basePitch, rate=$rate")
+            tts?.setPitch(finalPitch)
+            tts?.setSpeechRate(finalRate)
+            Log.d(TAG, "Applied voice settings: persona=$voiceName, mood=${currentMood.name}, pitch=$finalPitch, rate=$finalRate")
         } catch (_: Exception) {}
     }
 
@@ -350,22 +357,30 @@ object MayaSpeaker {
         context: Context,
         text: String,
         flush: Boolean = true,
+        mood: com.example.emotion.MayaMood? = null,
         onDone: (() -> Unit)? = null
     ) {
+        if (mood != null) {
+            com.example.emotion.MayaMoodManager.setMood(mood)
+        }
         if (!isInitialized || tts == null) {
             init(context) {
-                speak(text, flush, onDone)
+                speak(context, text, flush, mood, onDone)
             }
         } else {
-            speak(text, flush, onDone)
+            speak(text, flush, mood, onDone)
         }
     }
 
     fun speak(
         text: String,
         flush: Boolean = true,
+        mood: com.example.emotion.MayaMood? = null,
         onDone: (() -> Unit)? = null
     ) {
+        if (mood != null) {
+            com.example.emotion.MayaMoodManager.setMood(mood)
+        }
         val clean = cleanTextForSpeech(text)
         if (clean.isBlank()) {
             onDone?.invoke()
@@ -384,7 +399,7 @@ object MayaSpeaker {
             return
         }
 
-        appContext?.let { applyVoiceSettings(it) }
+        appContext?.let { applyVoiceSettings(it, mood) }
 
         onSpeechDoneCallback = onDone
 
